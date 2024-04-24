@@ -58,4 +58,4 @@ Java Development Kit (JDK): Version 17 or higher is recommended, JDK 11 or highe
 
 ## **License**
 
-This project is governed by the MIT License. For detailed information, refer to [LICENSE](https://github.com/0880880/Pulsar/blob/core/LICENSE).
+This project is governed by the MIT License. For detailed information, refer to [LICENSE](https://github.com/0880880/Pulsar/blob/main/LICENSE).
