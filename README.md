@@ -1,4 +1,4 @@
-# Game Engine
+# Pulsar Game Engine
 
 A lightweight 2D game engine made with libGDX.
 
