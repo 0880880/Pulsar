@@ -1,0 +1,33 @@
+package com.pulsar.api.components;
+
+import com.pulsar.api.Component;
+import com.pulsar.api.Debug;
+import com.pulsar.api.graphics.Color;
+import com.pulsar.api.math.Vector2;
+import com.pulsar.api.physics.Physics;
+
+import java.util.List;
+
+public class PolygonCollider extends Component implements Collider {
+
+ public float density = 1;
+ public float friction = .5f;
+ public float restitution = 0;
+ public boolean isSensor = false;
+ public PhysicsFilter filter = new PhysicsFilter();
+
+
+ public int ID;
+
+ public void start() {}
+
+
+
+ private float[] verticesArr = null;
+
+ public void debugUpdate() {}
+
+ @Override
+ public int hashCode() {return 0;}
+
+}
