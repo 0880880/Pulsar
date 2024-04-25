@@ -224,7 +224,7 @@ public class Editor implements Screen {
         ScreenUtils.clear(0, 0, 0, 1);
 
         if (currentProject != null) {
-            Gdx.graphics.setTitle("Game Engine - " + currentProject.projectName + (projectChange ? "*" : ""));
+            Gdx.graphics.setTitle("Pulsar Engine - " + currentProject.projectName + (projectChange ? "*" : ""));
         }
 
         if (reload && !isGameRunning) {
