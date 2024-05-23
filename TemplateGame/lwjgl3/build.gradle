@@ -33,6 +33,9 @@ dependencies {
   implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
   api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
   implementation "com.github.Hangman:TuningFork:$tuningForkVersion"
+
+  $DESKTOP_DEPENDENCIES$
+
   implementation project(':core')
 }
 

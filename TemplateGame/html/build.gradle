@@ -40,6 +40,8 @@ dependencies {
   implementation 'com.github.tommyettinger:RegExodus:v0.1.15:sources'
   implementation("com.badlogicgames.gdx:gdx-box2d-gwt:$gdxVersion:sources"){exclude group: "com.google.gwt", module: "gwt-user"}
 
+  $HTML_DEPENDENCIES$
+
   implementation project(':core')
 
 }
