@@ -1,8 +1,10 @@
 package com.pulsar.api.components;
 
+import com.pulsar.Statics;
 import com.pulsar.api.AudioManager;
 import com.pulsar.api.Component;
 import com.pulsar.api.audio.AudioClip;
+import com.pulsar.api.math.MathUtils;
 import com.pulsar.audio.BufferedSoundSource;
 
 public class AudioSource extends Component {
@@ -22,7 +24,7 @@ public class AudioSource extends Component {
 
         AudioManager.sources.add(source);
 
-        if (playOnStart) source.play();
+        if (playOnStart) play();
 
     }
 

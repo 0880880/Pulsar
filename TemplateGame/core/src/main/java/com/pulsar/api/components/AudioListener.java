@@ -16,13 +16,11 @@ public class AudioListener extends Component {
 
         camera = gameObject.hasComponent(Camera.class) ? gameObject.getComponent(Camera.class) : null;
 
+        if (camera != null) soundListener.setPosition(camera.getViewport().getCamera());
+
     }
 
     public void update() {
-
-        if (camera != null) {
-            soundListener.setPosition(camera.getViewport().getCamera()).setOrientation(camera.getViewport().getCamera());
-        }
 
     }
 

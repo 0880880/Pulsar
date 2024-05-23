@@ -3,6 +3,7 @@ package com.pulsar.api.components;
 import com.pulsar.api.AudioManager;
 import com.pulsar.api.Component;
 import com.pulsar.api.audio.AudioClip;
+import com.pulsar.api.math.MathUtils;
 
 public class AudioSource extends Component {
 
