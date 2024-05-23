@@ -10,6 +10,7 @@ A lightweight 2D game engine made with libGDX.
 - **Audio**
 - **2D Physics (Box2D)**
 - **Shaders**
+- **Multi-platform development (Windows, Linux, macOS, Web with GWT)**
 
 ## **Example Script**
 
