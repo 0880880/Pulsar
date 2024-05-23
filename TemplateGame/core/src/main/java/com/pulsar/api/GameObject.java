@@ -11,16 +11,15 @@ import com.game.Utils;
 
 import java.util.ArrayList;
 
+import static com.game.Statics.currentProject;
 import static com.game.Statics.engine;
 
 public class GameObject implements Cloneable
     , Json.Serializable
 {
 
-    public static int counter = 0;
-
     public String name;
-    public int ID = counter++;
+    public int ID;
 
     public ArrayList<Component> components = new ArrayList<>();
 
@@ -34,11 +33,17 @@ public class GameObject implements Cloneable
     public transient boolean renameMode = false;
 
     public GameObject() {
+        if (Statics.currentProject != null) ID = Statics.currentProject.getCurrentScene().counter++;
+    }
+
+    public GameObject(int ID) {
+        this.ID = ID;
     }
 
     public GameObject(String name) {
         this.name = name;
         addComponent(transform);
+        ID = Statics.currentProject.getCurrentScene().counter++;
     }
 
     void start() {
@@ -88,18 +93,18 @@ public class GameObject implements Cloneable
     public void addGameObject(GameObject child) {
         child.parent = this;
         children.add(child);
-        Statics.allGameObjects.add(child);
+        Statics.allGameObjects.get(Statics.currentProject.currentScene).add(child);
     }
 
     public void removeGameObject(GameObject child) {
         if (!children.contains(child)) return;
         child.parent = null;
         children.remove(child);
-        Statics.allGameObjects.removeValue(child, true);
+        Statics.allGameObjects.get(Statics.currentProject.currentScene).removeValue(child, true);
     }
 
     public void addComponent(Component component) {
-        component.className = ClassReflection.getSimpleName(component.getClass());
+        component.className = component.getClass().getName();
         components.add(component);
         engine.initComponent(component);
         component.gameObject = this;
@@ -124,13 +129,12 @@ public class GameObject implements Cloneable
 
             if (builtin) {
                 try {
-                    //Class<?> c = ClassReflection.forName(ClassReflection.getSimpleName(component.getClass()));
                     cmp = ClassReflection.newInstance(component.getClass());
                 } catch (ReflectionException e) {
                     throw new RuntimeException(e);
                 }
             } else {
-                cmp = Utils.getComponent(ClassReflection.getSimpleName(component.getClass()));
+                cmp = Utils.getComponent(component.getClass().getName());
             }
 
             object.addComponent(cmp);

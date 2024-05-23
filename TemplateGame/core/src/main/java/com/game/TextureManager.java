@@ -13,7 +13,7 @@ public class TextureManager {
         if ("internal".equals(path) && "NONAME".equals(name))
             textures.put(path, Renderer.getDefaultTexture().textureAsset);
         else if (!textures.containsKey(path))
-            textures.put(path, new TextureAsset(path, name, new com.badlogic.gdx.graphics.Texture(Gdx.files.internal(name))));
+            textures.put(path, new TextureAsset(path, name, new com.badlogic.gdx.graphics.Texture(path.substring(1))));
         return textures.get(path);
     }
 

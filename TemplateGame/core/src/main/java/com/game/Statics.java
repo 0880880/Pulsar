@@ -11,14 +11,18 @@ import com.pulsar.api.Engine;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.pulsar.api.GameObject;
 import com.pulsar.api.components.Camera;
+import com.badlogic.gdx.files.FileHandle;
 import com.game.audio.Audio;
 import com.game.audio.SoundLoader;
+
+import java.util.HashMap;
 
 public class Statics {
 
     public static Vector2 mouse = new Vector2();
 
     public static Project currentProject;
+    public static FileHandle currentProjectPath;
 
     public static Engine engine;
 
@@ -29,7 +33,7 @@ public class Statics {
     public static Audio audio;
     public static SoundLoader soundLoader;
 
-    public static Array<GameObject> allGameObjects = new Array<>();
+    public static HashMap<String, Array<GameObject>> allGameObjects = new HashMap<>();
 
     public static CameraHolder cameraHolder = new CameraHolder();
 

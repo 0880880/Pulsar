@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonWriter;
 import com.badlogic.gdx.utils.StringBuilder;
+import com.badlogic.gdx.utils.XmlReader;
 import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.pulsar.*;
 import com.pulsar.api.*;
@@ -31,12 +32,13 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.*;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,43 +49,43 @@ import static org.lwjgl.util.nfd.NativeFileDialog.*;
 
 public class Utils {
 
-	public static TextureRegion getPixel() {
-		Pixmap pixmap = new Pixmap(1, 1, Format.RGBA8888);
-		pixmap.setColor(Color.WHITE);
-		pixmap.drawPixel(0, 0);
-		Texture texture = new Texture(pixmap);
-		pixmap.dispose();
-		return new TextureRegion(texture, 0, 0, 1, 1);
-	}
+    public static TextureRegion getPixel() {
+        Pixmap pixmap = new Pixmap(1, 1, Format.RGBA8888);
+        pixmap.setColor(Color.WHITE);
+        pixmap.drawPixel(0, 0);
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return new TextureRegion(texture, 0, 0, 1, 1);
+    }
 
-	static Array<FileHandle> getFiles(FileHandle folder) {
-		Array<FileHandle> fs = new Array<>();
-		for (FileHandle f : folder.list()) {
-			if (f.isDirectory()) {
-				Array<FileHandle> tfs = getFiles(f);
-				fs.addAll(tfs);
-			} else {
-				fs.add(f);
-			}
-		}
-		return fs;
-	}
+    static Array<FileHandle> getFiles(FileHandle folder) {
+        Array<FileHandle> fs = new Array<>();
+        for (FileHandle f : folder.list()) {
+            if (f.isDirectory()) {
+                Array<FileHandle> tfs = getFiles(f);
+                fs.addAll(tfs);
+            } else {
+                fs.add(f);
+            }
+        }
+        return fs;
+    }
 
-	static Process compileJavaFile(String filePath, String dir) throws IOException {
-		String[] command = {"javac", filePath};
+    static Process compileJavaFile(String filePath, String dir, String dependencies) throws IOException {
+        String[] command = {"javac", "-cp", "\"" + dependencies + "\"", "-d", ".", filePath};
 
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.directory(new File(dir));
-		return  pb.start();
-	}
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.directory(new File(dir));
+        return pb.start();
+    }
 
-	static Process compileJavaFiles(String[] filePaths, String dir) throws IOException {
-		String[] command = {"javac"};
-		command = ArrayUtils.addAll(command, filePaths);
+    static Process compileJavaFiles(String[] filePaths, String dir) throws IOException {
+        String[] command = {"javac"};
+        command = ArrayUtils.addAll(command, filePaths);
 		/*StringBuilder builder = new StringBuilder();
 		for (String s : command)
 			builder.append(s).append(" ");*/
-		ProcessBuilder pb = new ProcessBuilder(command);
+        ProcessBuilder pb = new ProcessBuilder(command);
 		/*StringBuilder cmd = new StringBuilder();
 		for (String s : pb.command()) {
 			cmd.append(s);
@@ -91,22 +93,26 @@ public class Utils {
 		}*/
 
 
-		pb.directory(new File(dir));
-		return  pb.start();
-	}
+        pb.directory(new File(dir));
+        return pb.start();
+    }
 
-	static Process classToJar(String filePath, String dest, String dir) throws IOException {
-		String[] command = {"jar", "-cf", dest, filePath};
-		ProcessBuilder pb = new ProcessBuilder(command);;
-		pb.directory(new File(dir));
-		return  pb.start();
-	}
+    static Process classToJar(String filePath, String dest, String dir) throws IOException {
+        String[] command = {"jar", "cmvf", "META-INF/MANIFEST.MF", dest, filePath};
+        ProcessBuilder pb = new ProcessBuilder(command);
+        ;
+        pb.directory(new File(dir));
+        return pb.start();
+    }
 
     public static void error(String message) {
         JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-	public static void compile() {
+    private static String os = System.getProperty("os.name").toLowerCase();
+    private static String pathSeparator = os.contains("win") ? ";" : ":";
+
+    public static void compile() {
         currentProject.components.clear();
         try {
             FileHandle assetsDir = Statics.currentProject.path.child("Assets");
@@ -115,18 +121,20 @@ public class Utils {
 
             clearFolder(tempDir);
 
-            if (!tempDir.child("com").child("pulsar").child("api").child("components").exists())
-                tempDir.child("com").child("pulsar").child("api").child("components").mkdirs();
-            if (!tempDir.child("com").child("pulsar").child("api").child("math").exists())
-                tempDir.child("com").child("pulsar").child("api").child("math").mkdirs();
-            if (!tempDir.child("com").child("pulsar").child("api").child("graphics").exists())
-                tempDir.child("com").child("pulsar").child("api").child("graphics").mkdirs();
-            if (!tempDir.child("com").child("pulsar").child("api").child("audio").exists())
-                tempDir.child("com").child("pulsar").child("api").child("audio").mkdirs();
-            if (!tempDir.child("com").child("pulsar").child("api").child("annotations").exists())
-                tempDir.child("com").child("pulsar").child("api").child("annotations").mkdirs();
-            if (!tempDir.child("com").child("pulsar").child("api").child("physics").exists())
-                tempDir.child("com").child("pulsar").child("api").child("physics").mkdirs();
+            FileHandle pulsarApi = tempDir.child("com").child("pulsar").child("api");
+
+            if (!pulsarApi.child("components").exists())
+                pulsarApi.child("components").mkdirs();
+            if (!pulsarApi.child("math").exists())
+                pulsarApi.child("math").mkdirs();
+            if (!pulsarApi.child("graphics").exists())
+                pulsarApi.child("graphics").mkdirs();
+            if (!pulsarApi.child("audio").exists())
+                pulsarApi.child("audio").mkdirs();
+            if (!pulsarApi.child("annotations").exists())
+                pulsarApi.child("annotations").mkdirs();
+            if (!pulsarApi.child("physics").exists())
+                pulsarApi.child("physics").mkdirs();
 
             if (!tempDir.child("components").exists())
                 tempDir.child("components").mkdirs();
@@ -141,8 +149,8 @@ public class Utils {
             if (!tempDir.child("annotations").exists())
                 tempDir.child("annotations").mkdirs();
 
-            String[] compileApiOrder = new String[] {"Engine.java", "Debug.java", "Renderer.java", "Input.java", "ShaderLanguage.java", "GameObject.java", "Time.java", "Component.java", "GameObjectCondition.java", "AudioManager.java", "Label.java", "Curve.java", "Button.java", "ColorRange.java", "Graphics.java", "CameraHolder.java"};
-            String[] foldersToCopy = new String[] {"components", "math", "graphics", "audio", "physics", "annotations"};
+            String[] compileApiOrder = new String[]{"Engine.java", "Debug.java", "Renderer.java", "Input.java", "ShaderLanguage.java", "GameObject.java", "Time.java", "Component.java", "GameObjectCondition.java", "AudioManager.java", "Label.java", "Curve.java", "Button.java", "ColorRange.java", "Graphics.java", "CameraHolder.java", "Scene.java"};
+            String[] foldersToCopy = new String[]{"components", "math", "graphics", "audio", "physics", "annotations"};
 
             for (String s : compileApiOrder) {
                 FileHandle a = apiDir.child(s);
@@ -195,17 +203,61 @@ public class Utils {
 
             boolean exit = false;
 
+            javaComponentLoader = new JavaComponentLoader();
+
+            FileHandle dependenciesDir = apiDir.child("Dependencies");
+
+            StringBuilder dependencies = new StringBuilder();
+            for (String dependency : currentProject.dependencies) {
+                String[] parts = dependency.split(":");
+                String artifactId = parts[1];
+                String version = parts[2];
+                dependencies.append(artifactId).append("-").append(version).append(".jar").append(" ");
+            }
+            for (String dependency : currentProject.desktopDependencies) { // Engine only
+                String[] parts = dependency.split(":");
+                String artifactId = parts[1];
+                String version = parts[2];
+                dependencies.append(artifactId).append("-").append(version).append(".jar").append(" ");
+            }
+
+            for (FileHandle dependency : dependenciesDir.list()) {
+                dependency.copyTo(tempDir);
+            }
+
+            tempDir.child("META-INF").mkdirs();
+            tempDir.child("META-INF").child("MANIFEST.MF").writeString("Manifest-Version: 1.0\nClass-Path: " + dependencies, false);
+
             for (FileHandle a : assets) {
 
                 if (a.extension().equalsIgnoreCase("java")) {
                     if (!a.readString().isEmpty()) {
 
+                        FileHandle dir = tempDir.child(getPackage(a).replaceAll("\\.", "/"));
+                        dir.mkdirs();
+
                         a.copyTo(tempDir);
 
-                        Process p1 = compileJavaFile(tempDir.child(a.name()).path(), tempDir.path());
+                        StringBuilder dependenciesList = new StringBuilder();
+                        for (int i = 0; i < currentProject.dependencies.size(); i++) {
+                            String[] parts = currentProject.dependencies.get(i).split(":");
+                            String artifactId = parts[1];
+                            String version = parts[2];
+                            dependenciesList.append(artifactId).append("-").append(version).append(".jar");
+                            if (i != currentProject.dependencies.size() - 1) dependenciesList.append(pathSeparator);
+                        }
+                        for (int i = 0; i < currentProject.desktopDependencies.size(); i++) { // Engine only
+                            String[] parts = currentProject.desktopDependencies.get(i).split(":");
+                            String artifactId = parts[1];
+                            String version = parts[2];
+                            dependenciesList.append(artifactId).append("-").append(version).append(".jar");
+                            if (i != currentProject.desktopDependencies.size() - 1) dependenciesList.append(pathSeparator);
+                        }
+                        Process p1 = compileJavaFile(tempDir.child(a.name()).path(), tempDir.path(), dependenciesList.toString());
 
                         while (p1.waitFor() != 0) {
                             if (p1.getErrorStream().available() > 0) {
+                                //System.out.println(new String(p1.getErrorStream().readAllBytes()));
                                 Debug.error(a.name() + " : " + new String(p1.getErrorStream().readAllBytes()));
                                 exit = true;
                                 break;
@@ -213,10 +265,8 @@ public class Utils {
                         }
                         if (exit) break;
 
-                        javaComponentLoader = new JavaComponentLoader();
-
-                        String fp1 = "." + tempDir.child(a.nameWithoutExtension() + ".class").path().replaceAll(tempDir.path(), "");
-                        Process p2 = classToJar(fp1, tempDir.child(a.nameWithoutExtension() + ".jar").path(), tempDir.path());
+                        String fp1 = "." + dir.child(a.nameWithoutExtension() + ".class").path().replaceAll(tempDir.path(), "");
+                        Process p2 = classToJar(fp1, dir.child(a.nameWithoutExtension() + ".jar").path(), tempDir.path());
 
                         while (p2.waitFor() != 0) {
                             if (p2.getErrorStream().available() > 0) {
@@ -233,10 +283,12 @@ public class Utils {
 
             Array<FileHandle> tempFiles = getFiles(tempDir);
 
-            for (FileHandle t : tempFiles) {
-                if (t.extension().equals("java") || t.extension().equals("class")) {
-                    if (!(t.name().equals("Component.class") || t.name().equals("Engine.class") || t.name().equals("Entity.class") || t.name().equals("Debug.class"))) {
-                        t.delete();
+            if (!exit) {
+                for (FileHandle t : tempFiles) {
+                    if (t.extension().equals("java") || t.extension().equals("class")) {
+                        if (!(t.name().equals("Component.class") || t.name().equals("Engine.class") || t.name().equals("Entity.class") || t.name().equals("Debug.class"))) {
+                            t.delete();
+                        }
                     }
                 }
             }
@@ -246,34 +298,31 @@ public class Utils {
 
     }
 
-	static void clearFolder(FileHandle folder) {
-		for (FileHandle f : folder.list()) {
-			if (f.isDirectory())
-				f.deleteDirectory();
-			else
-				f.delete();
-		}
-	}
-
-	public static String pickFolder() {
-		try (MemoryStack stack = MemoryStack.stackPush()) {
-			PointerBuffer buf = stack.callocPointer(1);
-			int result = NFD_PickFolder((ByteBuffer) null, buf);
-			if (result == NFD_OKAY) {
-                return MemoryUtil.memUTF8(buf.get(0));
-			} else if (result == NFD_ERROR) {
-				return null;
-			}
-		}
-		return null;
-	}
-
-    public static void setGameObjectCounter() {
-        int ID = 0;
-        for (GameObject gameObject : allGameObjects) {
-            ID = Math.max(ID, gameObject.ID);
+    static void clearFolder(FileHandle folder) {
+        for (FileHandle f : folder.list()) {
+            if (f.isDirectory())
+                f.deleteDirectory();
+            else
+                f.delete();
         }
-        GameObject.counter = ID + 1;
+    }
+
+    public static String pickFolder() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            PointerBuffer buf = stack.callocPointer(1);
+            int result = NFD_PickFolder((ByteBuffer) null, buf);
+            if (result == NFD_OKAY) {
+                return MemoryUtil.memUTF8(buf.get(0));
+            } else if (result == NFD_ERROR) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    @Deprecated
+    public static void setGameObjectCounter() {
+
     }
 
     private static void addComponents(FileHandle parent) {
@@ -282,13 +331,25 @@ public class Utils {
             if (file.isDirectory()) {
                 addComponents(file);
             } else if (file.extension().equalsIgnoreCase("java")) {
-                if (!file.readString().isEmpty()) {
-                    if (!currentProject.path.child("Temp").child(file.nameWithoutExtension() + ".jar").exists()) continue;
-                    Class<?> c = Utils.getClass(file.nameWithoutExtension());
-                    if (Component.class.isAssignableFrom(c)) {
-                        Class<? extends Component> nc = (Class<? extends Component>) c;
-                        currentProject.components.add(nc);
+                try (InputStream stream = file.read()) {
+                    if (stream.available() > 0) {
+                        FileHandle dir = currentProject.path.child("Temp").child(getPackage(file).replaceAll("\\.", "/"));
+                        if (!dir.child(file.nameWithoutExtension() + ".jar").exists())
+                            continue;
+                        String source = file.readString();
+                        String packageName = "";
+                        String[] words = source.split("\\s");
+                        if (words[0].equals("package"))
+                            packageName = words[1].substring(0, words[1].length() - 1);
+                        String name = packageName + (packageName.isEmpty() ? "" : ".") + file.nameWithoutExtension();
+                        Class<?> c = Utils.getClass(name);
+                        if (Component.class.isAssignableFrom(c)) {
+                            Class<? extends Component> nc = (Class<? extends Component>) c;
+                            currentProject.components.add(nc);
+                        }
                     }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -317,13 +378,13 @@ public class Utils {
         currentProject.components.add(ParticleEmitter.class);
     }
 
-	public static void loadProject(Project project) {
+    public static void loadProject(Project project) {
 
-		engine = new Engine(new Sprite(), drawer, cameraHolder);
+        engine = new Engine(new Sprite(), drawer, cameraHolder);
 
-		currentProject = project;
-		if (currentProject == null)
-			Gdx.app.exit();
+        currentProject = project;
+        if (currentProject == null)
+            Gdx.app.exit();
 
         main.setScreen(new Editor());
 
@@ -333,36 +394,39 @@ public class Utils {
 
         setGameObjectCounter();
 
-	}
+    }
 
-	public static void loadProject(String path) {
+    public static boolean loadProject(String path) {
 
         allGameObjects.clear();
 
         javaComponentLoader = new JavaComponentLoader();
 
-		engine = new Engine(new Sprite(), drawer, cameraHolder);
+        engine = new Engine(new Sprite(), drawer, cameraHolder);
 
         currentProject = null;
 
-		currentProject = Project.loadProject(path);
+        currentProject = Project.loadProject(path);
 
-		if (currentProject == null)
-			Gdx.app.exit();
+        if (currentProject == null) {
+            return false;
+        }
 
-		Statics.main.setScreen(new Editor());
+        Statics.main.setScreen(new Editor());
 
-		addComponents();
+        addComponents();
 
         setGameObjectCounter();
 
-        Utils.fixGameObjects(currentProject.rootGameObject);
+        Utils.fixGameObjects(currentProject.getCurrentScene().rootGameObject);
 
         Gdx.files.local("recent_projects").writeString(path + "\n", true);
 
         recentProjects.add(path);
 
-	}
+        return true;
+
+    }
 
     private static void fixTextureAssets(Object object) {
         // TODO Replace recursion with a while loop
@@ -440,9 +504,11 @@ public class Utils {
         "      <sourceFolder url=\"file://$MODULE_DIR$\" />\n" +
         "      <sourceFolder url=\"file://$MODULE_DIR$/Api\" isTestSource=\"false\" packagePrefix=\"com.pulsar.api\" />\n" +
         "      <sourceFolder url=\"file://$MODULE_DIR$/Assets\" isTestSource=\"false\" />\n" +
+        "      <excludeFolder url=\"file://$MODULE_DIR$/Temp\" />\n" +
         "    </content>\n" +
         "    <orderEntry type=\"inheritedJdk\" />\n" +
         "    <orderEntry type=\"sourceFolder\" forTests=\"false\" />\n" +
+        "    <orderEntry type=\"library\" name=\"Dependencies\" level=\"project\" />\n" +
         "  </component>\n" +
         "</module>";
 
@@ -455,17 +521,15 @@ public class Utils {
         "  </component>\n" +
         "</project>";
 
-	public static void createProject(String path, String name) {
+    public static void createProject(String path, String name) {
 
-		FileHandle folder = Gdx.files.absolute(path);
+        FileHandle folder = Gdx.files.absolute(path);
 
-        GameObject.counter = 0;
+        folder.child("Temp").mkdirs();
+        folder.child("Assets").mkdirs();
+        folder.child("Api").mkdirs();
 
-		folder.child("Temp").mkdirs();
-		folder.child("Assets").mkdirs();
-		folder.child("Api").mkdirs();
-
-		FileHandle[] files = Gdx.files.local("api").list();
+        FileHandle[] files = Gdx.files.local("api").list();
 
         for (FileHandle f : files) {
             f.copyTo(folder.child("Api"));
@@ -474,12 +538,17 @@ public class Utils {
         SerializableProject sp = new SerializableProject();
         sp.path = Gdx.files.absolute(path);
         sp.projectName = name;
-        sp.rootGameObject = new SerializableGameObject(new GameObject());
+        Scene scene = new Scene();
+        scene.name = "Main";
+        scene.rootGameObject = new GameObject(0);
+        sp.scenes.put("Main.scene", new SerializableScene(scene));
+        sp.mainScene = "Main.scene";
 
-        folder.child("main.prj").writeString(json.toJson(sp), false);
         folder.child(folder.nameWithoutExtension() + ".iml").writeString(imlFile, false);
         folder.child(".idea").mkdirs();
         folder.child(".idea").child("modules.xml").writeString(ideaModulesFile.replaceAll("\\[REPLACE]", folder.nameWithoutExtension()), false);
+
+        folder.child("main.prj").writeString(sp.toJson(), false);
 
         loadProject(path);
 
@@ -491,26 +560,31 @@ public class Utils {
         camera.addComponent(cameraCmp);
         camera.addComponent(listenerCmp);
 
-        currentProject.rootGameObject.addGameObject(camera);
+        scene.rootGameObject.addGameObject(camera);
+
+        sp.scenes.put("Main.scene", new SerializableScene(scene));
+        folder.child("main.prj").writeString(sp.toJson(), false);
+
+        loadProject(path);
 
         save();
 
-	}
+    }
 
-	public static void initialize() {
-		batch = new CpuSpriteBatch();
+    public static void initialize() {
+        batch = new CpuSpriteBatch();
 
-		Pixmap pixel = new Pixmap(1, 1, Format.RGBA8888);
-		pixel.setColor(Color.WHITE);
-		pixel.fill();
+        Pixmap pixel = new Pixmap(1, 1, Format.RGBA8888);
+        pixel.setColor(Color.WHITE);
+        pixel.fill();
 
-		drawer = new ShapeDrawer(batch, new TextureRegion(new Texture(pixel)));
+        drawer = new ShapeDrawer(batch, new TextureRegion(new Texture(pixel)));
 
-		fbo = new FrameBuffer(Format.RGBA8888, 1080, 720, false);
+        fbo = new FrameBuffer(Format.RGBA8888, 1080, 720, false);
 
-		javaComponentLoader = new JavaComponentLoader();
+        javaComponentLoader = new JavaComponentLoader();
 
-		gui = new Gui();
+        gui = new Gui();
 
         audio.init();
 
@@ -535,15 +609,19 @@ public class Utils {
             Gdx.files.local("recent_projects").writeString(sb.toString(), false);
         }
 
-	}
+    }
 
-	public static Component getComponent(String componentName) {
-		try {
-			File f = currentProject.path.child("Temp").child(componentName + ".jar").file();
-            return javaComponentLoader.loadScript(f);
-		} catch (FileNotFoundException | ClassNotFoundException | MalformedURLException e) {
+    public static Component getComponent(String componentName) {
+        try {
+            FileHandle dir = currentProject.path.child("Temp");
+            int lastIndexOfDot = Math.max(componentName.lastIndexOf('.') + 1, 0);
+            if (lastIndexOfDot > 0)
+                dir = dir.child(componentName.substring(0, lastIndexOfDot).replaceAll("\\.", "/"));
+            File f = dir.child(componentName.substring(lastIndexOfDot) + ".jar").file();
+            return javaComponentLoader.loadScript(f, componentName);
+        } catch (FileNotFoundException | ClassNotFoundException | MalformedURLException e) {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(500);
                 return getComponent(componentName);
             } catch (InterruptedException ex) {
                 throw new RuntimeException(ex);
@@ -551,53 +629,54 @@ public class Utils {
         }
     }
 
-	public static Class<?> getClass(String componentName) {
-		return getComponent(componentName).getClass();
+    public static Class<?> getClass(String componentName) {
+        Class<?> c = getComponent(componentName).getClass();
+        return c;
     }
 
-	public static void save() {
+    public static void save() {
 
         for (Material material : engine.loadedMaterials.values()) {
             Gdx.files.absolute(material.materialFile).writeString(material.save(), false);
         }
 
-        String j = json.toJson(new SerializableProject(Statics.currentProject));
+        String j = new SerializableProject(Statics.currentProject).toJson();
         Gdx.files.absolute(Statics.currentProject.path.path() + "\\main.prj").writeString(j, false);
 
         projectChange = false;
 
-	}
+    }
 
-	public static void load() {
-	}
+    public static void load() {
+    }
 
-	static boolean moveXLock = false;
-	static boolean moveYLock = false;
-	static boolean moveLock = false;
-	static boolean scaleXLock = false;
-	static boolean scaleYLock = false;
-	static boolean rotateLock = false;
+    static boolean moveXLock = false;
+    static boolean moveYLock = false;
+    static boolean moveLock = false;
+    static boolean scaleXLock = false;
+    static boolean scaleYLock = false;
+    static boolean rotateLock = false;
 
-	static float mouseOffsetX = 0;
-	static float mouseOffsetY = 0;
+    static float mouseOffsetX = 0;
+    static float mouseOffsetY = 0;
 
-	static float initialScaleX;
-	static float initialScaleY;
+    static float initialScaleX;
+    static float initialScaleY;
 
     static boolean change;
 
     com.pulsar.api.math.Vector2 tmp = new com.pulsar.api.math.Vector2();
 
-	public static boolean tools() {
-		boolean canMoveX = false;
-		boolean canMoveY = false;
-		boolean canMove = false;
-		boolean canScaleX = false;
-		boolean canScaleY = false;
-		boolean canRotate = false;
+    public static boolean tools() {
+        boolean canMoveX = false;
+        boolean canMoveY = false;
+        boolean canMove = false;
+        boolean canScaleX = false;
+        boolean canScaleY = false;
+        boolean canRotate = false;
 
-		if (selectedGameObjects != null) {
-			for (int i = 0; i < selectedGameObjects.length; i++) {
+        if (selectedGameObjects != null) {
+            for (int i = 0; i < selectedGameObjects.length; i++) {
                 GameObject gameObject = selectedGameObjects[i];
 
                 com.pulsar.api.math.Vector2 position = gameObject.transform.position;
@@ -689,72 +768,72 @@ public class Utils {
                 scale.add(scaleOffsetX, scaleOffsetY);
                 gameObject.transform.rotation += rotationOffset;
             }
-		}
+        }
 
-		return !moveXLock && !moveYLock && !canMove && !moveLock && !canMoveY && !canMoveX && !canScaleX &&
-				!canScaleY && !scaleXLock && !scaleYLock && !canRotate && !rotateLock;
-	}
+        return !moveXLock && !moveYLock && !canMove && !moveLock && !canMoveY && !canMoveX && !canScaleX &&
+            !canScaleY && !scaleXLock && !scaleYLock && !canRotate && !rotateLock;
+    }
 
-	public static void deleteFolder(File folder) {
-		File[] files = folder.listFiles();
-		if(files!=null) {
-			for(File f: files) {
-				if(f.isDirectory()) {
-					deleteFolder(f);
-				} else {
-					if (!f.delete()) {
+    public static void deleteFolder(File folder) {
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                if (f.isDirectory()) {
+                    deleteFolder(f);
+                } else {
+                    if (!f.delete()) {
                         throw new RuntimeException("Failed to delete file " + f.getAbsolutePath());
                     }
-				}
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 
-	public static void copyFiles(FileHandle folder, FileHandle dest) {
-		FileHandle[] files = folder.list();
-		for (int i = 0; i < files.length; i++) {
-			FileHandle file = files[i];
+    public static void copyFiles(FileHandle folder, FileHandle dest) {
+        FileHandle[] files = folder.list();
+        for (int i = 0; i < files.length; i++) {
+            FileHandle file = files[i];
             if (file.isDirectory()) {
                 file.copyTo(dest);
             } else {
                 file.copyTo(dest.child(file.name()));
             }
-		}
-	}
+        }
+    }
 
-	private static String preprocessScript(String source, String pkg) {
-		StringBuilder result = new StringBuilder();
-		result.append("package ");
-		result.append(pkg);
-		result.append(";\n\n");
-		result.append(source);
-		return result.toString();
-	}
+    private static String preprocessScript(String source, String pkg) {
+        StringBuilder result = new StringBuilder();
+        result.append("package ");
+        result.append(pkg);
+        result.append(";\n\n");
+        result.append(source);
+        return result.toString();
+    }
 
-	public static void copyScripts(FileHandle assetsDir, FileHandle srcDirectory, String curPackage) {
-		FileHandle[] files = assetsDir.list();
-		for (int i = 0; i < files.length; i++) {
-			FileHandle file = files[i];
-			if (file.isDirectory()) {
-				copyScripts(file, srcDirectory, curPackage + "." + file.name());
-			} else if (file.extension().equalsIgnoreCase("java")) {
-				file.moveTo(srcDirectory.child(file.name()));
-				String text = srcDirectory.child(file.name()).readString();
-				srcDirectory.child(file.name()).writeString(preprocessScript(text, curPackage), false);
-			}
-		}
-	}
+    public static void copyScripts(FileHandle assetsDir, FileHandle srcDirectory, String curPackage) {
+        FileHandle[] files = assetsDir.list();
+        for (int i = 0; i < files.length; i++) {
+            FileHandle file = files[i];
+            if (file.isDirectory()) {
+                copyScripts(file, srcDirectory, curPackage + "." + file.name());
+            } else if (file.extension().equalsIgnoreCase("java")) {
+                file.moveTo(srcDirectory.child(file.name()));
+                String text = srcDirectory.child(file.name()).readString();
+                srcDirectory.child(file.name()).writeString(preprocessScript(text, curPackage), false);
+            }
+        }
+    }
 
-	public static void openFolder(FileHandle folder) {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			try {
-				desktop.browse(folder.file().toURI());
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+    public static void openFolder(FileHandle folder) {
+        if (Desktop.isDesktopSupported()) {
+            Desktop desktop = Desktop.getDesktop();
+            try {
+                desktop.browse(folder.file().toURI());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
     private static boolean checkFile(String f) {
         File file = new File(f);
@@ -777,12 +856,34 @@ public class Utils {
         FileHandle gameFolder = buildFolder.child("Temp").child("GameFolder");
         FileHandle src = gameFolder.child("core").child("src").child("main").child("java").child("com").child("game").child("scripts");
 
-        copyFiles(projectAssets, gameFolder.child("assets"));
+        gameFolder.child("assets").child("Assets").mkdirs();
+        copyFiles(projectAssets, gameFolder.child("assets").child("Assets"));
 
         copyScripts(gameFolder.child("assets"), src, "com.game.scripts");
 
         FileHandle mainGameObject = gameFolder.child("assets").child("main.json");
         mainGameObject.writeString(json.toJson(new SerializableProject(currentProject)), false);
+
+        FileHandle coreBuildFile = gameFolder.child("core").child("build.gradle");
+        FileHandle desktopBuildFile = gameFolder.child("lwjgl3").child("build.gradle");
+        FileHandle htmlBuildFile = gameFolder.child("html").child("build.gradle");
+
+        StringBuilder coreDependencies = new StringBuilder();
+        StringBuilder desktopDependencies = new StringBuilder();
+        StringBuilder htmlDependencies = new StringBuilder();
+
+        for (int i = 0; i < currentProject.dependencies.size(); i++)
+            coreDependencies.append("implementation \"").append(currentProject.dependencies.get(i)).append("\"");
+
+        for (int i = 0; i < currentProject.desktopDependencies.size(); i++)
+            desktopDependencies.append("implementation \"").append(currentProject.desktopDependencies.get(i)).append("\"");
+
+        for (int i = 0; i < currentProject.htmlDependencies.size(); i++)
+            htmlDependencies.append("implementation \"").append(currentProject.htmlDependencies.get(i)).append("\"");
+
+        coreBuildFile.writeString(coreBuildFile.readString().replace("$CORE_DEPENDENCIES$", coreDependencies.toString()), false);
+        desktopBuildFile.writeString(desktopBuildFile.readString().replace("$DESKTOP_DEPENDENCIES$", desktopDependencies.toString()), false);
+        htmlBuildFile.writeString(htmlBuildFile.readString().replace("$HTML_DEPENDENCIES$", htmlDependencies.toString()), false);
 
         if (checkFile(currentProject.appIconLinux))
             Gdx.files.absolute(currentProject.appIconLinux).copyTo(gameFolder.child("lwjgl3").child("icons"));
@@ -801,7 +902,7 @@ public class Utils {
             Gdx.files.absolute(currentProject.windowIcon128).copyTo(gameFolder.child("assets"));
     }
 
-	public static void build(boolean showFolder) {
+    public static void build(boolean showFolder) {
 
         buildSetup();
 
@@ -811,31 +912,31 @@ public class Utils {
         FileHandle src = gameFolder.child("core").child("src").child("main").child("java").child("com").child("game").child("scripts");
 
         ProcessBuilder pb = new ProcessBuilder(buildFolder.child("Temp").child("GameFolder").child("gradlew.bat").path(), "jar");
-		pb.directory(new File(gameFolder.file().getAbsolutePath()));
-		Process p;
-		try {
-			p = pb.start();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+        pb.directory(new File(gameFolder.file().getAbsolutePath()));
+        Process p;
+        try {
+            p = pb.start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-		while (true) {
-			try {
+        while (true) {
+            try {
                 if (p.getErrorStream().available() > 0) {
                     throw new RuntimeException("Compilation Error: \n" + new String(p.getErrorStream().readAllBytes()));
                 }
                 if (p.waitFor(500, TimeUnit.MILLISECONDS)) break;
-			} catch (InterruptedException | IOException e) {
-				throw new RuntimeException(e);
-			}
+            } catch (InterruptedException | IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-		gameFolder.child("lwjgl3").child("build").child("lib").child("Game-1.0.0.jar").copyTo(buildFolder.child(currentProject.buildName + "-" + currentProject.version + ".jar"));
-		gameFolder.parent().deleteDirectory();
+        gameFolder.child("lwjgl3").child("build").child("lib").child("Game-1.0.0.jar").copyTo(buildFolder.child(currentProject.buildName + "-" + currentProject.version + ".jar"));
+        gameFolder.parent().deleteDirectory();
 
-		if (showFolder) openFolder(buildFolder);
+        if (showFolder) openFolder(buildFolder);
 
-	}
+    }
 
     private static GameObject search(GameObject parent, int ID) {
         for (GameObject gameObject : parent.children) {
@@ -849,7 +950,7 @@ public class Utils {
     }
 
     public static GameObject getGameObject(int ID) {
-        return search(currentProject.rootGameObject, ID);
+        return search(currentProject.getCurrentScene().rootGameObject, ID);
     }
 
     public static void copyTo(FileHandle src, FileHandle dest, String name) {
@@ -958,7 +1059,7 @@ public class Utils {
     }
 
     public static void addAllGameObjects(GameObject parent) {
-        allGameObjects.add(parent);
+        allGameObjects.get(currentProject.currentScene).add(parent);
         for (GameObject g : parent.children) {
             addAllGameObjects(g);
         }
@@ -967,7 +1068,7 @@ public class Utils {
     public static void captureState() {
         for (int i = historyIdx; i < history.size; i++)
             history.removeIndex(i);
-        history.add(new SerializableGameObject(currentProject.rootGameObject));
+        history.add(new SerializableGameObject(currentProject.getCurrentScene().rootGameObject));
         if (history.size > 20) history.removeIndex(0);
         historyIdx = history.size;
         projectChange = true;
@@ -976,7 +1077,7 @@ public class Utils {
     private static void fixSelection() {
         if (selectedGameObject != null) {
             int targetID = selectedGameObject.ID;
-            for (GameObject gameObject : allGameObjects) {
+            for (GameObject gameObject : allGameObjects.get(currentProject.currentScene)) {
                 if (gameObject.ID == targetID) {
                     selectedGameObject = gameObject;
                     break;
@@ -990,9 +1091,9 @@ public class Utils {
     public static void undo() {
         if (historyIdx > 0) {
             historyIdx--;
-            allGameObjects.clear();
-            currentProject.rootGameObject = history.get(historyIdx).createGameObject(null);
-            addAllGameObjects(currentProject.rootGameObject);
+            allGameObjects.get(currentProject.currentScene).clear();
+            currentProject.getCurrentScene().rootGameObject = history.get(historyIdx).createGameObject(null);
+            addAllGameObjects(currentProject.getCurrentScene().rootGameObject);
             setGameObjectCounter();
             fixSelection();
             projectChange = true;
@@ -1002,9 +1103,9 @@ public class Utils {
     public static void redo() {
         if (historyIdx < history.size - 1) {
             historyIdx++;
-            allGameObjects.clear();
-            currentProject.rootGameObject = history.get(historyIdx).createGameObject(null);
-            addAllGameObjects(currentProject.rootGameObject);
+            allGameObjects.get(currentProject.currentScene).clear();
+            currentProject.getCurrentScene().rootGameObject = history.get(historyIdx).createGameObject(null);
+            addAllGameObjects(currentProject.getCurrentScene().rootGameObject);
             setGameObjectCounter();
             fixSelection();
             projectChange = true;
@@ -1031,8 +1132,6 @@ public class Utils {
             try {
                 if (p.getErrorStream().available() > 0)
                     throw new RuntimeException("Compilation Error: \n" + new String(p.getErrorStream().readAllBytes()));
-                if (p.getInputStream().available() > 0)
-                    System.out.println(new String(p.getInputStream().readAllBytes()));
                 if (p.waitFor(500, TimeUnit.MILLISECONDS)) break;
             } catch (InterruptedException | IOException e) {
                 throw new RuntimeException(e);
@@ -1062,6 +1161,164 @@ public class Utils {
             return Gdx.files.absolute(path);
         else
             return Gdx.files.internal(path.substring(path.indexOf("Assets") + 7));
+    }
+
+    public static String getPackage(FileHandle file, String spacing) {
+        if (!file.parent().name().equals("Assets")) {
+            StringBuilder pkg = new StringBuilder();
+            String parent = getPackage(file.parent());
+            if (!parent.isEmpty()) pkg.append(getPackage(file.parent())).append(spacing);
+            pkg.append(file.parent().name());
+            return pkg.toString();
+        }
+        return file.name();
+    }
+
+    public static String getPackage(FileHandle file) {
+        return getPackage(file, ".");
+    }
+
+    private static XmlReader xmlReader = new XmlReader();
+
+    public static class Artifact {
+
+        public String groupId;
+        public String artifactId;
+        public String version;
+        public String[] other;
+
+        public XmlReader.Element pom;
+        public String jarURL;
+
+        public ArrayList<Artifact> dependencies = new ArrayList<>();
+
+    }
+
+    private static Artifact loadArtifact(String artifactURL, String repositoryUrl) {
+
+        if (repositoryUrl.isEmpty()) repositoryUrl = "https://repo.maven.apache.org/maven2/";
+
+        String[] parts = artifactURL.split(":");
+        String groupId = parts[0];
+        String artifactId = parts[1];
+        String version = parts[2];
+        String[] other = new String[parts.length - 3];
+        for (int i = 0; i < other.length; i++) {
+            other[i] = parts[i + 3];
+        }
+        StringBuilder otherSB = new StringBuilder();
+        for (int i = 0; i < other.length; i++) {
+            otherSB.append("-").append(other[i]);
+        }
+        StringBuilder pomPath = new StringBuilder();
+        pomPath.append(groupId.replace('.', '/')).append("/").append(artifactId).append("/")
+            .append(version).append("/").append(artifactId).append("-").append(version).append(".pom");
+
+        try {
+            URL url = new URL(repositoryUrl + pomPath);
+
+            URLConnection connection = url.openConnection();
+
+            connection.setRequestProperty("Accept", "application/xml");
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+            String inputLine;
+            java.lang.StringBuilder content = new java.lang.StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+            in.close();
+
+            Artifact artifact = new Artifact();
+            artifact.groupId = groupId;
+            artifact.artifactId = artifactId;
+            artifact.version = version;
+            artifact.other = other;
+
+            XmlReader.Element element = xmlReader.parse(String.valueOf(content));
+            artifact.pom = element;
+            artifact.jarURL = repositoryUrl + String.format("%s/%s/%s/%s-%s%s.jar", groupId.replaceAll("\\.", "/"), artifactId, version, artifactId, version, otherSB);
+
+            if (element.hasChild("dependencies")) {
+                Array<XmlReader.Element> dependencies = element.getChildByName("dependencies").getChildrenByName("dependency");
+
+                for (XmlReader.Element dependency : dependencies) {
+
+                    String depGroupId = dependency.getChildByName("groupId").getText();
+                    String depArtifactId = dependency.getChildByName("artifactId").getText();
+                    String depVersion = dependency.getChildByName("version").getText();
+                    String depArtifactURL = depGroupId + ":" + depArtifactId + ":" + depVersion;
+
+                    Artifact dependencyArtifact = loadArtifact(depArtifactURL,  "");
+                    if (dependencyArtifact != null) {
+                        artifact.dependencies.add(dependencyArtifact);
+                    } else {
+                        if (element.hasChild("repositories")) {
+                            Array<XmlReader.Element> repositories = element.getChildByName("repositories").getChildrenByName("repository");
+                            for (XmlReader.Element repo : repositories) {
+                                String repoUrl = repo.getChildByName("url").getText();
+                                dependencyArtifact = loadArtifact(depArtifactURL, repoUrl);
+                                if (dependencyArtifact != null) {
+                                    artifact.dependencies.add(dependencyArtifact);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            return artifact;
+
+        } catch (IOException ignored) {}
+
+        return null;
+
+    }
+
+    private static void downloadArtifacts(FileHandle apiDir, ArrayList<Artifact> deps) {
+        for (Artifact artifact : deps) {
+            downloadArtifact(apiDir, artifact);
+        }
+    }
+
+    private static void downloadArtifact(FileHandle apiDir, Artifact artifact) {
+        try {
+            if (artifact != null) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < artifact.other.length; i++) {
+                    sb.append("-").append(artifact.other[i]);
+                }
+                FileUtils.copyURLToFile(new URL(artifact.jarURL), apiDir.child("Dependencies").child(artifact.artifactId + "-" + artifact.version + sb + ".jar").file());
+                downloadArtifacts(apiDir, artifact.dependencies);
+            }
+        } catch (IOException e) { throw new RuntimeException(e); }
+    }
+
+    private static void downloadDependencies(FileHandle apiDir, ArrayList<String> deps) {
+        for (String dependency : deps) {
+            Artifact artifact = null;
+            for (int i = 0; i < currentProject.repositories.size(); i++) {
+                artifact = loadArtifact(dependency, currentProject.repositories.get(i));
+                System.out.println(artifact);
+                if (artifact != null) break;
+            }
+            downloadArtifact(apiDir, artifact);
+        }
+    }
+
+    public static void updateDependencies() {
+        FileHandle apiDir = currentProject.path.child("Api");
+
+        apiDir.child("Dependencies").mkdirs();
+        apiDir.child("Dependencies").emptyDirectory();
+
+        downloadDependencies(apiDir, currentProject.dependencies);
+        downloadDependencies(apiDir, currentProject.desktopDependencies);
+        downloadDependencies(apiDir, currentProject.htmlDependencies);
+
     }
 
 }

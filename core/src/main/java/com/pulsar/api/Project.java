@@ -2,12 +2,14 @@ package com.pulsar.api;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.utils.Array;
 import com.pulsar.api.math.Vector2;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 
-import static com.pulsar.Statics.json;
+import static com.pulsar.Statics.*;
 
 public class Project {
 
@@ -16,7 +18,9 @@ public class Project {
 
     public ArrayList<Class<? extends Component>> components = new ArrayList<>();
 
-    public GameObject rootGameObject;
+    public HashMap<String, Scene> scenes = new HashMap<>();
+    public String mainScene;
+    public String currentScene;
 
     public String windowTitle = "Game";
     public String buildName = "Game";
@@ -38,7 +42,13 @@ public class Project {
     public int physicsVelocityIterations = 6;
     public int physicsPositionIterations = 2;
 
-    public Project() {}
+    public ArrayList<String> dependencies = new ArrayList<>();
+    public ArrayList<String> desktopDependencies = new ArrayList<>();
+    public ArrayList<String> htmlDependencies = new ArrayList<>();
+    public ArrayList<String> repositories = new ArrayList<>();
+
+    public Project() {
+    }
 
     public static Project loadProject(String path) {
 
@@ -46,12 +56,33 @@ public class Project {
 
         if (pFolder.isDirectory()) {
             FileHandle projectSave = Gdx.files.absolute(pFolder.getAbsolutePath() + "\\main.prj");
-            if (projectSave.exists())
-                return json.fromJson(SerializableProject.class, projectSave.readString()).createProject();
+            currentProjectPath = projectSave.parent();
+            if (projectSave.exists()) {
+                Project proj = json.fromJson(SerializableProject.class, projectSave.readString()).createProject(projectSave.parent());
+                allGameObjects.put(proj.currentScene, new Array<>());
+                return proj;
+            }
         }
 
         return null;
 
+    }
+
+    public void changeScene(String scenePath) {
+        currentScene = scenePath;
+        if (!allGameObjects.containsKey(currentScene)) allGameObjects.put(currentScene, new Array<>());
+        getCurrentScene();
+    }
+
+    public Scene getScene(String scenePath) {
+        if (!allGameObjects.containsKey(scenePath)) allGameObjects.put(scenePath, new Array<>());
+        if (!scenes.containsKey(scenePath))
+            scenes.put(scenePath, json.fromJson(SerializableScene.class, currentProject.path.child("Assets").child(scenePath)).createScene());
+        return scenes.get(scenePath);
+    }
+
+    public Scene getCurrentScene() {
+        return getScene(currentScene);
     }
 
 }

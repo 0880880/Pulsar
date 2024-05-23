@@ -27,18 +27,18 @@ public class Engine {
 
 
  
-HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> gameObjectsComponentsFieldMap = new HashMap<>();
+private  HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> gameObjectsComponentsFieldMap = new HashMap<>();
 
- public Object copyObject(Object object, Class<?> c) {return null;}
+ private Object copyObject(Object object, Class<?> c) {return null;}
 
  
 void copyComponentsFields(HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> map, GameObject parent) {}
 
- void addComponentsFields(HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> map, GameObject parent) {}
+ private void addComponentsFields(HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> map, GameObject parent) {}
 
- public void addChildrenToICs(GameObject gameObject) {}
+ private void addChildrenToICs(GameObject gameObject) {}
 
- public void applyICsToChildren() {}
+ private void applyICsToChildren() {}
 
  public void start(GameObject main, boolean ic) {}
 
@@ -48,7 +48,6 @@ void copyComponentsFields(HashMap<Integer, HashMap<Class<? extends Component>, H
 
  private float accumulator = 0;
  private  float timeStep = 1/60f;
-
 
  public void update(GameObject main) {}
 

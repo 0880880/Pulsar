@@ -2,6 +2,7 @@ package com.pulsar.api.graphics;
 
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
+import com.pulsar.Statics;
 
 public class TextureAsset
     implements Json.Serializable
@@ -40,12 +41,12 @@ public class TextureAsset
     }
 
     @Override public void write(Json json) {
-        json.writeValue("path", path);
+        json.writeValue("path", path.substring(Statics.currentProjectPath.path().length()));
         json.writeValue("filename", filename);
     }
 
     @Override public void read(Json json, JsonValue jsonData) {
-        path = json.readValue("path", String.class, jsonData);
+        path = Statics.currentProjectPath.path() + json.readValue("path", String.class, jsonData);
         filename = json.readValue("filename", String.class, jsonData);
     }
 }

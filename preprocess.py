@@ -34,7 +34,7 @@ input_file = "../core/src/main/java/com/pulsar/api"
 output_file = "../api"
 template_path = "../TemplateGame/core/src/main/java/com/pulsar/api"
 
-pattern = re.compile(r"\s*(public|private|static)\s*(static|public|private)?\s*(\<T\>)?\s+(?!void)([a-zA-Z][a-zA-Z0-9]*)((\[\])*)\s+[a-zA-Z][a-zA-Z0-9]*\s*\([^)]*\)\s*\{\}\s*", re.MULTILINE)
+pattern = re.compile(r"\s*(public|private|static|synchronized|final|strictfp)\s*(static|public|private|synchronized|final|strictfp)?\s*(\<T\>)?\s+(?!void)([a-zA-Z][a-zA-Z0-9]*)((\[\])*)\s+[a-zA-Z][a-zA-Z0-9]*\s*\([^)]*\)\s*\{\}\s*", re.MULTILINE)
 
 block_comment_re = re.compile(r"\/\*(.|\s)*?\*\/", re.MULTILINE)
 line_comment_re = re.compile(r"(\/\/.*?)(?=\n|$)")

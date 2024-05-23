@@ -16,7 +16,7 @@ public class JavaComponentLoader {
 	private final Map<String, JavaComponentClassLoader> loaders = new LinkedHashMap<String, JavaComponentClassLoader>();
 	private final Map<String, Class<?>> classes = new java.util.concurrent.ConcurrentHashMap<String, Class<?>>();
 
-	public Component loadScript(File file) throws FileNotFoundException, MalformedURLException, ClassNotFoundException {
+	public Component loadScript(File file, String componentName) throws FileNotFoundException, MalformedURLException, ClassNotFoundException {
 		Validate.notNull(file, "File cannot be null");
 
 		if (!file.exists()) {
@@ -24,7 +24,7 @@ public class JavaComponentLoader {
         }
 
 		final JavaComponentClassLoader loader;
-        loader = new JavaComponentClassLoader(this, getClass().getClassLoader(), file);
+        loader = new JavaComponentClassLoader(this, getClass().getClassLoader(), file, componentName);
 
 		loaders.put(FilenameUtils.removeExtension(file.getName()), loader);
 

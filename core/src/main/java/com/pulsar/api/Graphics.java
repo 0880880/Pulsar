@@ -89,4 +89,8 @@ public class Graphics {
         Gdx.graphics.setSystemCursor(sc);
     }
 
+    public void changeScene(String path) {
+        Statics.currentProject.changeScene(path);
+    }
+
 }

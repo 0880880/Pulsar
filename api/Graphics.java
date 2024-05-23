@@ -40,4 +40,6 @@ public static void setTitle(String title) {}
 
  public static void setCursor(Cursor cursor) {}
 
+ public void changeScene(String path) {}
+
 }

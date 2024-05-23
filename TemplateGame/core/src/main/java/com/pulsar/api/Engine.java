@@ -85,10 +85,9 @@ public class Engine {
         Debug.init();
     }
 
-    ArrayList<GameObjectCondition> initialConditions;
-    HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> gameObjectsComponentsFieldMap = new HashMap<>();
+    private  HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> gameObjectsComponentsFieldMap = new HashMap<>();
 
-    public Object copyObject(Object object, Class<?> c) {
+    private Object copyObject(Object object, Class<?> c) {
         if (c == Vector2.class)
             object = ((Vector2) object).cpy();
         else if (c == Vector3.class)
@@ -129,7 +128,7 @@ public class Engine {
         }
     }
 
-    void addComponentsFields(HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> map, GameObject parent) {
+    private void addComponentsFields(HashMap<Integer, HashMap<Class<? extends Component>, HashMap<String, Object>>> map, GameObject parent) {
         for (GameObject gameObject : parent.children) {
             HashMap<Class<? extends Component>, HashMap<String, Object>> components = map.get(gameObject.ID);
 
@@ -153,7 +152,7 @@ public class Engine {
                             throw new RuntimeException(e);
                         }
                     } else {
-                        gameObject.addComponent(Utils.getComponent(key.getSimpleName()));
+                        gameObject.addComponent(Utils.getComponent(key.getName()));
                     }
                 }
 
@@ -174,38 +173,34 @@ public class Engine {
         }
     }
 
-    public void addChildrenToICs(GameObject gameObject) {
+    private void addChildrenToICs(GameObject gameObject) {
         copyComponentsFields(gameObjectsComponentsFieldMap, gameObject);
     }
 
-    public void applyICsToChildren() {
-        addComponentsFields(gameObjectsComponentsFieldMap, Statics.currentProject.rootGameObject);
+    private void applyICsToChildren() {
+        addComponentsFields(gameObjectsComponentsFieldMap, Statics.currentProject.getCurrentScene().rootGameObject);
     }
 
     public void start(GameObject main, boolean ic) {
         Physics.start();
         if (ic) {
-            initialConditions = new ArrayList<>();
-            initialConditions.add(new GameObjectCondition(Statics.currentProject.rootGameObject));
-            addChildrenToICs(Statics.currentProject.rootGameObject);
+            addChildrenToICs(Statics.currentProject.getCurrentScene().rootGameObject);
         }
         main.start();
     }
 
     public void start() {
-        start(Statics.currentProject.rootGameObject, true);
+        start(Statics.currentProject.getCurrentScene().rootGameObject, true);
     }
 
     public void stop() {
         applyICsToChildren();
         AudioManager.destroySources();
-        initialConditions.clear();
         Physics.stop();
     }
 
     private float accumulator = 0;
     private  float timeStep = 1/60f;
-
 
     public void update(GameObject main) {
         float frameTime = Math.min(Gdx.graphics.getDeltaTime(), 0.25f);
@@ -223,7 +218,7 @@ public class Engine {
     }
 
     public void update() {
-        update(Statics.currentProject.rootGameObject);
+        update(Statics.currentProject.getCurrentScene().rootGameObject);
     }
 
     public void initComponent(Component component) {

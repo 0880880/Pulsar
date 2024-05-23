@@ -3,6 +3,7 @@ package com.pulsar.api;
 import com.pulsar.api.math.Vector2;
 
 import java.io.File;
+import java.util.HashMap;
 
 
 public class Project {
@@ -10,7 +11,9 @@ public class Project {
  public String projectName;
 
 
- public GameObject rootGameObject;
+ public HashMap<String, Scene> scenes = new HashMap<>();
+ public String mainScene;
+ public String currentScene;
 
  public String windowTitle = "Game";
  public String buildName = "Game";
@@ -32,9 +35,18 @@ public class Project {
  public int physicsVelocityIterations = 6;
  public int physicsPositionIterations = 2;
 
+
  public Project() {}
 
  public static Project loadProject(String path) {return null;}
+
+ 
+public void changeScene(String scenePath) {}
+
+ public Scene getScene(String scenePath) {return null;}
+
+ 
+public Scene getCurrentScene() {return null;}
 
 
 }

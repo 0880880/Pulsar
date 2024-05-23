@@ -2,13 +2,17 @@ package com.pulsar.api;
 
 import com.pulsar.api.math.Vector2;
 
+import java.util.HashMap;
+import java.util.List;
+
 
 public class SerializableProject
 {
 
  public String projectName;
 
- public SerializableGameObject rootGameObject;
+ public HashMap<String, SerializableScene> scenes = new HashMap<>();
+ public String mainScene;
 
  public String windowTitle = "Game";
  public String buildName = "Game";
@@ -30,14 +34,18 @@ public class SerializableProject
  public int physicsVelocityIterations = 6;
  public int physicsPositionIterations = 2;
 
+ public String[] dependencies = new String[0];
+ public String[] desktopDependencies = new String[0];
+ public String[] htmlDependencies = new String[0];
+ public String[] repositories = new String[0];
+
  public SerializableProject(Project project) {}
 
  public SerializableProject() {}
 
- public Project createProject() {return null;}
 
- 
-@Override
+ @Override
+
 
  @Override
 }

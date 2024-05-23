@@ -232,9 +232,9 @@ public class Editor implements Screen {
             engine = null;
 
             HashMap<Integer, HashMap<String, HashMap<String, Object>>> gameObjectsComponentsFieldMap = new HashMap<>();
-            Utils.copyComponentsFields(gameObjectsComponentsFieldMap, currentProject.rootGameObject);
+            Utils.copyComponentsFields(gameObjectsComponentsFieldMap, currentProject.getCurrentScene().rootGameObject);
 
-            allGameObjects.clear();
+            allGameObjects.get(currentProject.currentScene).clear();
 
             javaComponentLoader = new JavaComponentLoader();
             engine = new Engine(new Sprite(), drawer, cameraHolder);
@@ -244,9 +244,9 @@ public class Editor implements Screen {
 
             System.gc();
 
-            currentProject = sp.createProject();
+            currentProject = sp.createProject(sp.path);
 
-            Utils.addComponentFields(gameObjectsComponentsFieldMap, currentProject.rootGameObject);
+            Utils.addComponentFields(gameObjectsComponentsFieldMap, currentProject.getCurrentScene().rootGameObject);
 
             Utils.addComponents();
 
@@ -331,7 +331,7 @@ public class Editor implements Screen {
 		if (!isGameRunning) {
 			gameCamera = null;
 		} else if (gameCamera == null) {
-			copyComponents(currentProject.rootGameObject);
+			copyComponents(currentProject.getCurrentScene().rootGameObject);
 		}
 
         setMouse();
@@ -473,7 +473,7 @@ public class Editor implements Screen {
     );
 
 	private void select() {
-        for (GameObject gameObject : allGameObjects) {
+        for (GameObject gameObject : allGameObjects.get(currentProject.currentScene)) {
             com.pulsar.api.math.Vector2 position = gameObject.transform.position;
             com.pulsar.api.math.Vector2 scale = gameObject.transform.scale;
             polygon.setPosition(position.x, position.y);

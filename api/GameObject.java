@@ -7,10 +7,8 @@ import com.pulsar.api.components.Transform;
 public class GameObject implements Cloneable
 {
 
- public static int counter = 0;
-
  public String name;
- public int ID = counter++;
+ public int ID;
 
 
 
@@ -22,6 +20,8 @@ public class GameObject implements Cloneable
  public transient boolean renameMode = false;
 
  public GameObject() {}
+
+ public GameObject(int ID) {}
 
  public GameObject(String name) {}
 

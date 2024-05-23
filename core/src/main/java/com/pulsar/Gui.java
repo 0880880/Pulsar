@@ -20,6 +20,8 @@ import com.pulsar.api.math.Matrix3;
 import com.pulsar.api.math.Matrix4;
 import com.pulsar.api.math.Vector2;
 import com.pulsar.api.math.Vector3;
+import com.pulsar.utils.AssetPackInfo;
+import com.pulsar.utils.AssetPackUtils;
 import com.pulsar.utils.GameObjectPreset;
 import com.pulsar.utils.Utils;
 
@@ -94,6 +96,7 @@ public class Gui {
 
     private final ImBoolean showPreferences = new ImBoolean(false);
     private final ImBoolean showProjectSettings = new ImBoolean(false);
+    private final ImBoolean showAssetsWindow = new ImBoolean(false);
 
     private final ImString imString = new ImString();
 
@@ -254,7 +257,7 @@ public class Gui {
             if (ImGui.selectable("Delete")) {
                 Utils.captureState();
                 object.parent.children.remove(object);
-                allGameObjects.removeValue(object, true);
+                allGameObjects.get(currentProject.currentScene).removeValue(object, true);
             }
             isAnyWindowHovered |= ImGui.isWindowHovered();
             ImGui.endPopup();
@@ -411,14 +414,18 @@ public class Gui {
         return rectangle;
     }
 
-    private String inputText(String label, String text) {
+    private String inputText(String label, String text, float w0, float w1) {
         imString.set(text);
         ImGui.text(label);
         ImGui.sameLine();
-        ImGui.setCursorPosX(200);
-        ImGui.setNextItemWidth(700);
+        ImGui.setCursorPosX(w0);
+        ImGui.setNextItemWidth(w1);
         ImGui.inputText("##" + label, imString);
         return imString.get();
+    }
+
+    private String inputText(String label, String text) {
+        return inputText(label, text, 200, 700);
     }
 
     private String inputTextID(String id, String text) {
@@ -592,7 +599,9 @@ public class Gui {
 
         for (String project : recentProjects) {
             if (ImGui.selectable(project)) {
-                Utils.loadProject(project);
+                if (!Utils.loadProject(project)) {
+                    recentProjects.removeValue(project, false);
+                }
             }
         }
 
@@ -904,34 +913,34 @@ public class Gui {
 
         ImGui.spacing();
 
-        boolean isTreeNodeOpen = ImGui.treeNodeEx(Statics.currentProject.projectName, ImGuiTreeNodeFlags.SpanFullWidth | ImGuiTreeNodeFlags.DefaultOpen);
-        treeNodeContextMenu(currentProject.rootGameObject);
+        boolean isTreeNodeOpen = ImGui.treeNodeEx(currentProject.currentScene.substring(0,currentProject.currentScene.length() - 6) + " (" + currentProject.projectName + ")", ImGuiTreeNodeFlags.SpanFullWidth | ImGuiTreeNodeFlags.DefaultOpen);
+        treeNodeContextMenu(currentProject.getCurrentScene().rootGameObject);
         if (ImGui.beginDragDropTarget()) {
             Object payload = ImGui.acceptDragDropPayload("GameObject");
             if (payload != null && payload.getClass() == GameObject.class) {
                 GameObject g = (GameObject) payload;
                 g.parent.children.remove(g);
-                currentProject.rootGameObject.children.add(g);
-                g.parent = currentProject.rootGameObject;
+                currentProject.getCurrentScene().rootGameObject.children.add(g);
+                g.parent = currentProject.getCurrentScene().rootGameObject;
             }
             ImGui.endDragDropTarget();
         }
         ImGui.setCursorPosY(ImGui.getCursorPosY() - 3);
-        ImGui.invisibleButton("##GameObject_" + currentProject.rootGameObject.ID + "_TARGET", ImGui.getContentRegionAvailX(), 6);
+        ImGui.invisibleButton("##GameObject_" + currentProject.getCurrentScene().rootGameObject.ID + "_TARGET", ImGui.getContentRegionAvailX(), 6);
         ImGui.setCursorPosY(ImGui.getCursorPosY() - 3);
         if (ImGui.beginDragDropTarget()) {
             Object payload = ImGui.acceptDragDropPayload("GameObject");
             if (payload != null && payload.getClass() == GameObject.class) {
                 GameObject g = (GameObject) payload;
                 g.parent.children.remove(g);
-                currentProject.rootGameObject.parent.children.add(currentProject.rootGameObject.parent.children.indexOf(currentProject.rootGameObject) + 1, g);
-                g.parent = currentProject.rootGameObject.parent;
+                currentProject.getCurrentScene().rootGameObject.parent.children.add(currentProject.getCurrentScene().rootGameObject.parent.children.indexOf(currentProject.getCurrentScene().rootGameObject) + 1, g);
+                g.parent = currentProject.getCurrentScene().rootGameObject.parent;
             }
             ImGui.endDragDropTarget();
         }
 
         if (isTreeNodeOpen) {
-            drawTreeChildren(Statics.currentProject.rootGameObject, false);
+            drawTreeChildren(currentProject.getCurrentScene().rootGameObject, false);
             ImGui.treePop();
         }
 
@@ -1135,7 +1144,7 @@ public class Gui {
             String name0 = "Default";
             for (String key : engine.loadedTextures.keySet()) {
                 TextureAsset tex = engine.loadedTextures.get(key);
-                if (tex.getPath().equals(newTextureAsset.getPath())) name0 = key;
+                if (newTextureAsset != null && tex.getPath().equals(newTextureAsset.getPath())) name0 = key;
             }
             if (ImGui.beginPopup("TextureSelector")) {
                 if (ImGui.button("Default", 100 + ImGui.getStyle().getFramePaddingX() * 2, 100 + ImGui.getStyle().getFramePaddingY() * 2)) {
@@ -1208,7 +1217,7 @@ public class Gui {
             String name0 = "None";
             for (String key : engine.loadedAudioClips.keySet()) {
                 AudioClip audioClip = engine.loadedAudioClips.get(key);
-                if (Objects.equals(audioClip.soundFile, newAudioClip.soundFile)) {
+                if (newAudioClip != null && audioClip.soundFile.equals(newAudioClip.soundFile)) {
                     name0 = key;
                     break;
                 }
@@ -1247,7 +1256,7 @@ public class Gui {
         } else if (type.equals(GameObject.class)) {
             GameObject newGameObject = (GameObject) value;
             String name0 = "None";
-            for (GameObject go : Statics.allGameObjects) {
+            for (GameObject go : Statics.allGameObjects.get(currentProject.currentScene)) {
                 if (go == newGameObject) name0 = go.name;
             }
             if (ImGui.beginPopup("GameObjectSelector")) {
@@ -1255,7 +1264,7 @@ public class Gui {
                     newGameObject = null;
                     ImGui.closeCurrentPopup();
                 }
-                for (GameObject go : Statics.allGameObjects) {
+                for (GameObject go : Statics.allGameObjects.get(currentProject.currentScene)) {
                     if (go != selectedGameObject && ImGui.selectable(go.name)) {
                         newGameObject = go;
                         ImGui.closeCurrentPopup();
@@ -1282,7 +1291,7 @@ public class Gui {
         } else if (Component.class.isAssignableFrom((Class<?>) type)) {
             Component newComponent = (Component) value;
             String name0 = "None";
-            for (GameObject go : Statics.allGameObjects) {
+            for (GameObject go : Statics.allGameObjects.get(currentProject.currentScene)) {
                 if (go.hasComponent((Class<? extends Component>) type)) {
                     Component comp = (Component) go.getComponent((Class<?>) type);
                     if (comp == newComponent) name0 = go.name;
@@ -1294,7 +1303,7 @@ public class Gui {
                     newComponent = null;
                     ImGui.closeCurrentPopup();
                 }
-                for (GameObject go : Statics.allGameObjects) {
+                for (GameObject go : Statics.allGameObjects.get(currentProject.currentScene)) {
                     if (go.hasComponent((Class<? extends Component>) type)) {
                         if (go != selectedGameObject && ImGui.selectable(go.name)) {
                             newComponent = (Component) go.getComponent((Class<?>) type);
@@ -1698,7 +1707,7 @@ public class Gui {
                 String componentName = ImGui.acceptDragDropPayload("Component", String.class);
 
                 for (Class<? extends Component> component : Statics.currentProject.components) {
-                    if (component.getSimpleName().equals(componentName)) {
+                    if (component.getName().equals(componentName)) {
                         selectedGameObject.addComponent(Utils.getComponent(componentName));
                         break;
                     }
@@ -1714,9 +1723,9 @@ public class Gui {
 
                 for (Class<?> component : currentProject.components) {
                     if (component.getModule() != Transform.class.getModule() &&
-                        ImGui.selectable(component.getSimpleName(), false, 0, ImGui.getContentRegionAvailX(), 16)) {
+                        ImGui.selectable(component.getName(), false, 0, ImGui.getContentRegionAvailX(), 16)) {
                         Utils.captureState();
-                        selectedGameObject.addComponent(Utils.getComponent(component.getSimpleName()));
+                        selectedGameObject.addComponent(Utils.getComponent(component.getName()));
                         close = true;
                     }
                 }
@@ -1789,7 +1798,7 @@ public class Gui {
 
                 audioSourcePosition[0] = selectedAudioSource.getPlaybackPosition();
 
-                ImGui.beginDisabled(true);
+                ImGui.beginDisabled();
                 ImGui.sliderFloat("Playback Position", audioSourcePosition, 0, selectedAudioSource.getDuration());
                 ImGui.endDisabled();
 
@@ -2069,7 +2078,7 @@ public class Gui {
         }
 
         if (selection == null && selectedAudioSource != null) {
-            selectedAudioSource.dispose();
+            //selectedAudioSource.dispose();
         }
 
         isAnyWindowHovered |= ImGui.isWindowHovered() | ImGui.isAnyItemHovered();
@@ -2170,13 +2179,13 @@ public class Gui {
         }
     }
 
-    private String inputFile(String label, String file, String filter) {
+    private String inputFile(String label, String file, String filter, float w0, float w1) {
         ImGui.text(label);
         ImGui.sameLine();
-        ImGui.setCursorPosX(200);
+        ImGui.setCursorPosX(w0);
         imString.set(file);
         ImGui.inputText("##InFile" + label, imString);
-        ImGui.setNextItemWidth(700);
+        ImGui.setNextItemWidth(w1);
         ImGui.sameLine();
         if (ImGui.button("...##InFile" + label)) {
             imString.set(openDialog(filter));
@@ -2184,11 +2193,28 @@ public class Gui {
         return imString.get();
     }
 
+    private String inputFile(String label, String file, String filter) {
+        return inputFile(label, file, filter, 200, 700);
+    }
+
     private String inputFile(String label, String file) {
         return inputFile(label, file, "");
     }
 
+    String assetPackName = "";
+    String assetPackVersion = "";
+    String assetPackDependencies = "";
+    FileHandle assetPackFolder;
+    String assetsWindowFile = "";
+    String assetsWindowDependency = "";
+    String assetsWindowRepository = "";
+    String assetsWindowDependencyLast = "";
+    boolean assetsWindowDependencyEnabled = false;
+    int selectedDependencyApp = 0;
+
     public void render() throws IOException, ClassNotFoundException {
+
+        boolean doubleClick = ImGui.isMouseDoubleClicked(0);
 
         isAnyWindowHovered = false;
 
@@ -2218,6 +2244,13 @@ public class Gui {
             ImGui.separator();
             if (ImGui.menuItem("Project Settings")) {
                 showProjectSettings.set(!showProjectSettings.get());
+            }
+            ImGui.endMenu();
+        }
+
+        if (ImGui.beginMenu("Window")) {
+            if (ImGui.menuItem("Assets")) {
+                showAssetsWindow.set(!showAssetsWindow.get());
             }
             ImGui.endMenu();
         }
@@ -2265,6 +2298,108 @@ public class Gui {
             currentProject.physicsGravity.set(inputVec2("Gravity", currentProject.physicsGravity));
             currentProject.physicsVelocityIterations = inputInt("Velocity Iterations", currentProject.physicsVelocityIterations);
             currentProject.physicsPositionIterations = inputInt("Position Iterations", currentProject.physicsPositionIterations);
+
+            isAnyWindowHovered |= ImGui.isWindowHovered() || ImGui.isAnyItemHovered();
+
+            ImGui.end();
+        }
+
+        if (showAssetsWindow.get()) {
+            ImGui.setNextWindowSizeConstraints(360,400, 1000, 1000);
+            ImGui.begin("Assets", showAssetsWindow);
+
+            separatorCenter("Assets");
+
+            assetsWindowFile = inputFile("Assets", assetsWindowFile, "assets", 80, 200);
+            if (ImGui.button("Import", 128, 28)) {
+                AssetPackUtils.expandAssetPack(Gdx.files.absolute(assetsWindowFile), currentProject.path.child("Assets"));
+                refresh();
+            }
+
+            ImGui.spacing();
+            separatorCenter("Dependencies");
+            ImGui.spacing();
+
+            if (ImGui.button("Refresh", 128, 28))
+                Utils.updateDependencies();
+
+            ImGui.spacing();
+            ImGui.spacing();
+            ImGui.spacing();
+
+            assetsWindowRepository = inputText("Repository", assetsWindowRepository);
+
+            if (ImGui.button("Add##RepositoryAddBtn", 128, 28)) {
+                currentProject.repositories.add(assetsWindowRepository.strip());
+                assetsWindowRepository = "";
+                projectChange = true;
+                Utils.updateDependencies();
+            }
+
+            for (int i = currentProject.repositories.size() - 1; i >= 0; i--) {
+                ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                if (ImGui.selectable(currentProject.repositories.get(i))) {
+                    currentProject.repositories.remove(i);
+                    Utils.updateDependencies();
+                }
+            }
+
+            ImGui.spacing();
+            ImGui.spacing();
+            ImGui.spacing();
+
+            assetsWindowDependency = inputText("Dependency", assetsWindowDependency);
+
+            if (!assetsWindowDependency.equals(assetsWindowDependencyLast))
+                assetsWindowDependencyEnabled = assetsWindowDependency.split(":").length >= 3;
+
+            ImGui.beginDisabled(!assetsWindowDependencyEnabled);
+            if (ImGui.radioButton("Core", selectedDependencyApp == 0)) selectedDependencyApp = 0;
+            ImGui.sameLine();
+            if (ImGui.radioButton("Desktop", selectedDependencyApp == 1)) selectedDependencyApp = 1;
+            ImGui.sameLine();
+            if (ImGui.radioButton("HTML", selectedDependencyApp == 2)) selectedDependencyApp = 2;
+            if (ImGui.button("Add##DependencyAddBtn", 128, 28)) {
+                if (selectedDependencyApp == 0)
+                    currentProject.dependencies.add(assetsWindowDependency.strip());
+                if (selectedDependencyApp == 1)
+                    currentProject.desktopDependencies.add(assetsWindowDependency.strip());
+                if (selectedDependencyApp == 2)
+                    currentProject.htmlDependencies.add(assetsWindowDependency.strip());
+                assetsWindowDependency = "";
+                projectChange = true;
+                Utils.updateDependencies();
+            }
+            ImGui.endDisabled();
+
+            assetsWindowDependencyLast = assetsWindowDependency;
+
+            ImGui.spacing();
+
+            separator("CORE");
+            for (int i = currentProject.dependencies.size() - 1; i >= 0; i--) {
+                ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                if (ImGui.selectable(currentProject.dependencies.get(i))) {
+                    currentProject.dependencies.remove(i);
+                    Utils.updateDependencies();
+                }
+            }
+            separator("DESKTOP");
+            for (int i = currentProject.desktopDependencies.size() - 1; i >= 0; i--) {
+                ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                if (ImGui.selectable(currentProject.desktopDependencies.get(i))) {
+                    currentProject.desktopDependencies.remove(i);
+                    Utils.updateDependencies();
+                }
+            }
+            separator("HTML");
+            for (int i = currentProject.htmlDependencies.size() - 1; i >= 0; i--) {
+                ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                if (ImGui.selectable(currentProject.htmlDependencies.get(i))) {
+                    currentProject.htmlDependencies.remove(i);
+                    Utils.updateDependencies();
+                }
+            }
 
             isAnyWindowHovered |= ImGui.isWindowHovered() || ImGui.isAnyItemHovered();
 
@@ -2482,7 +2617,7 @@ public class Gui {
             ImGui.beginGroup();
 
             ImGui.imageButton(folderIcon.getTextureObjectHandle(), 100, 100);
-            if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
+            if (ImGui.isItemHovered() && doubleClick) {
 
                 StringBuilder sb = new StringBuilder();
                 sb.append("main");
@@ -2505,14 +2640,15 @@ public class Gui {
             ImGui.sameLine();
         }
 
-        for (FileHandle asset : assets) {
+        for (int i = 0; i < assets.size(); i++) {
+            FileHandle asset = assets.get(i);
 
             ImGui.beginGroup();
 
             if (asset.extension().equalsIgnoreCase("java")) {
                 ImGui.imageButton(codeIcon.getTextureObjectHandle(), 100, 100);
                 if (ImGui.isItemHovered() || ImGui.isItemActive()) contextMenuFile = asset;
-                if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
+                if (ImGui.isItemHovered() && doubleClick) {
                     FileHandle ideFile = Gdx.files.absolute(preferences.getString("idePath"));
                     if (ideFile.exists() && !ideFile.isDirectory()) {
                         String[] command = new String[]{preferences.getString("idePath"), Statics.currentProject.path.path(), Statics.currentProject.path.child("Assets").child(asset.name()).path()};
@@ -2525,7 +2661,7 @@ public class Gui {
 
                 if (ImGui.beginDragDropSource(ImGuiDragDropFlags.None)) {
 
-                    ImGui.setDragDropPayload("Component", asset.nameWithoutExtension());
+                    ImGui.setDragDropPayload("Component", Utils.getPackage(asset) + asset.nameWithoutExtension());
 
                     ImGui.image(codeIcon.getTextureObjectHandle(), 100, 100);
 
@@ -2612,9 +2748,16 @@ public class Gui {
                         ImGui.endDragDropSource();
                     }
                 }
+            } else if (asset.extension().equalsIgnoreCase("scene")) {
+                ImGui.pushID(asset.path());
+                ImGui.imageButton(fileIcon.getTextureObjectHandle(), 100, 100);
+                if (ImGui.isItemHovered() && doubleClick) {
+                    currentProject.changeScene(Utils.getPackage(asset, "/"));
+                }
+                ImGui.popID();
             } else if (asset.isDirectory()) {
                 ImGui.imageButton(folderIcon.getTextureObjectHandle(), 100, 100);
-                if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
+                if (ImGui.isItemHovered() && doubleClick) {
                     projectExplorerPath += "/" + asset.name();
                 }
                 if (ImGui.isItemHovered() || ImGui.isItemActive()) contextMenuFile = asset;
@@ -2660,6 +2803,13 @@ public class Gui {
         if (ImGui.beginPopupContextWindow("ProjectPopupContextItem" + (contextMenuFile != null ? contextMenuFile.name() : ""))) {
             hovered = true;
             if (ImGui.beginMenu("Create")) {
+                if (ImGui.menuItem("Scene")) {
+                    fileName.set("");
+                    ImGui.closeCurrentPopup();
+                    openPopup = true;
+                    popupName = "CreateScenePopup";
+                }
+                ImGui.separator();
                 if (ImGui.menuItem("Folder")) {
                     fileName.set("");
                     ImGui.closeCurrentPopup();
@@ -2688,10 +2838,20 @@ public class Gui {
                 ImGui.endMenu();
             }
 
+            if ((contextMenuFile != null && contextMenuFile.isDirectory()) && ImGui.menuItem("Create Asset Pack")) {
+                assetPackName = "";
+                assetPackVersion = "1.0.0";
+                assetPackFolder = contextMenuFile;
+                ImGui.closeCurrentPopup();
+                openPopup = true;
+                popupName = "CreateAssetPackPopup";
+            }
+
             ImGui.beginDisabled(contextMenuFile == null);
 
             if (ImGui.menuItem("Delete")) {
-                contextMenuFile.delete();
+                if (contextMenuFile.isDirectory()) contextMenuFile.deleteDirectory();
+                else contextMenuFile.delete();
                 refresh();
             }
 
@@ -2723,11 +2883,59 @@ public class Gui {
             ImGui.openPopup(popupName);
         }
 
+        if (ImGui.beginPopup("CreateAssetPackPopup")) {
+            assetPackName = inputText("Name", assetPackName, 150, 300);
+            assetPackVersion = inputText("Version", assetPackVersion, 150, 300);
+            assetPackDependencies = inputText("Dependencies", assetPackDependencies, 150, 300);
+            ImGui.textDisabled("Separate dependencies with commas");
+            ImGui.spacing();
+            if (ImGui.button("Create", 220, 20)) {
+                ImGui.closeCurrentPopup();
+                AssetPackUtils.createAssetPack(assetPackFolder, assetPackFolder.parent().child(assetPackName + ".assets"), new AssetPackInfo(assetPackName, Utils.getPackage(assetPackFolder), assetPackVersion, assetPackDependencies.split(",")));
+            }
+            ImGui.endPopup();
+        }
+
+        if (ImGui.beginPopup("CreateScenePopup")) {
+            ImGui.inputText("Scene Name", fileName);
+            if (ImGui.button("Create")) {
+
+                String path = projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5)) + fileName.get() + ".scene";
+
+                if (!Gdx.files.absolute(path).exists()) {
+                    ImGui.closeCurrentPopup();
+
+                    Scene scene = new Scene();
+                    scene.name = fileName.get();
+                    scene.rootGameObject = new GameObject();
+
+                    currentProject.scenes.put(path, scene);
+
+                    GameObject camera = new GameObject("Camera");
+
+                    Camera cameraCmp = new Camera();
+                    AudioListener listenerCmp = new AudioListener();
+
+                    camera.addComponent(cameraCmp);
+                    camera.addComponent(listenerCmp);
+
+                    currentProject.getScene(path).rootGameObject.addGameObject(camera);
+
+                    currentProject.path.child("Assets").child(projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5))).child(fileName.get() + ".scene").writeString(json.toJson(new SerializableScene(scene)), false);
+
+                    refresh();
+                }
+            }
+            isAnyWindowHovered |= ImGui.isWindowHovered();
+            ImGui.endPopup();
+        }
+
         if (ImGui.beginPopup("CreateFolderPopup")) {
             ImGui.inputText("Folder Name", fileName);
             if (ImGui.button("Create")) {
                 ImGui.closeCurrentPopup();
-                currentProject.path.child("Assets").child(fileName.get()).mkdirs();
+                FileHandle path = currentProject.path.child("Assets").child(projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5))).child(fileName.get());
+                path.mkdirs();
                 refresh();
             }
             isAnyWindowHovered |= ImGui.isWindowHovered();
@@ -2738,7 +2946,11 @@ public class Gui {
             ImGui.inputText("Script Name", fileName);
             if (ImGui.button("Create")) {
                 ImGui.closeCurrentPopup();
-                currentProject.path.child("Assets").child(fileName.get() + ".java").writeString("import com.pulsar.api.Component;\n\npublic class " + fileName.get() + " extends Component {\n\n    public void start() {\n\n    }\n    public void update() {\n\n    }\n\n}", false);
+                String packageName = projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5)).replaceAll("/", ".");
+                FileHandle path = currentProject.path.child("Assets").child(projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5))).child(fileName.get() + ".java");
+                if (!packageName.isBlank())
+                    path.writeString("package " + packageName + ";\n\n", false);
+                path.writeString("import com.pulsar.api.Component;\n\npublic class " + fileName.get() + " extends Component {\n\n    public void start() {\n\n    }\n\n    public void update() {\n\n    }\n\n}", true);
                 refresh();
             }
             isAnyWindowHovered |= ImGui.isWindowHovered();
@@ -2749,7 +2961,8 @@ public class Gui {
             ImGui.inputText("Shader Name", fileName);
             if (ImGui.button("Create")) {
                 ImGui.closeCurrentPopup();
-                currentProject.path.child("Assets").child(fileName.get() + ".sha").writeString(Gdx.files.internal("default.sha").readString(), false);
+                FileHandle path = currentProject.path.child("Assets").child(projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5))).child(fileName.get() + ".sha");
+                path.writeString(Gdx.files.internal("default.sha").readString(), false);
                 refresh();
             }
             isAnyWindowHovered |= ImGui.isWindowHovered();
@@ -2760,8 +2973,8 @@ public class Gui {
             ImGui.inputText("Material Name", fileName);
             if (ImGui.button("Create")) {
                 ImGui.closeCurrentPopup();
-                FileHandle p = currentProject.path.child("Assets").child(fileName.get() + ".mat");
-                p.writeString(new Material().save(), false);
+                FileHandle path = currentProject.path.child("Assets").child(projectExplorerPath.substring(Math.min(projectExplorerPath.length(), 5))).child(fileName.get() + ".mat");
+                path.writeString(new Material().save(), false);
                 refresh();
             }
             isAnyWindowHovered |= ImGui.isWindowHovered();

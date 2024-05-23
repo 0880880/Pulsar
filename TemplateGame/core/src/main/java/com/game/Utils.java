@@ -45,7 +45,7 @@ public class Utils {
     }
 
     public static GameObject getGameObject(int ID) {
-        return search(gameObjectManager.main, ID);
+        return search(gameObjectManager.getMain(), ID);
     }
 
     public static FileHandle getFile(String path) {

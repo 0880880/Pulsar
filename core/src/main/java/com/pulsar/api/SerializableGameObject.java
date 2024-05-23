@@ -9,8 +9,7 @@ import com.pulsar.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static com.pulsar.Statics.allGameObjects;
-import static com.pulsar.Statics.engine;
+import static com.pulsar.Statics.*;
 
 public class SerializableGameObject {
 
@@ -29,7 +28,7 @@ public class SerializableGameObject {
         this.name = gameObject.name;
         this.ID = gameObject.ID;
         for (Component component : gameObject.components) {
-            String componentName = "user." + ClassReflection.getSimpleName(component.getClass());
+            String componentName = "user." + component.getClass().getName();
 
             if (Component.isComponentBuiltin(component.getClass()))
                 componentName = "builtin." + ClassReflection.getSimpleName(component.getClass());
@@ -58,13 +57,12 @@ public class SerializableGameObject {
     }
 
     public GameObject createGameObject(GameObject parent) {
-        GameObject gameObject = new GameObject();
+        GameObject gameObject = new GameObject(ID);
         gameObject.name = name;
-        gameObject.ID = ID;
         gameObject.parent = parent;
         for (SerializableGameObject child : children) {
             GameObject o = child.createGameObject(gameObject);
-            allGameObjects.add(o);
+            allGameObjects.get(currentProject.currentScene).add(o);
             gameObject.children.add(o);
         }
         for (String componentName : components) {

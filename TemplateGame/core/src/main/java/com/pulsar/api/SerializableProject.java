@@ -10,7 +10,10 @@ import com.game.Statics;
 import com.pulsar.api.math.Vector2;
 import com.game.Utils;
 
-import static com.game.Statics.currentProject;
+import java.util.HashMap;
+import java.util.List;
+
+import static com.game.Statics.*;
 
 public class SerializableProject
     implements Json.Serializable
@@ -19,7 +22,8 @@ public class SerializableProject
     public FileHandle path;
     public String projectName;
 
-    public SerializableGameObject rootGameObject;
+    public HashMap<String, SerializableScene> scenes = new HashMap<>();
+    public String mainScene;
 
     public String windowTitle = "Game";
     public String buildName = "Game";
@@ -41,11 +45,19 @@ public class SerializableProject
     public int physicsVelocityIterations = 6;
     public int physicsPositionIterations = 2;
 
+    public String[] dependencies = new String[0];
+    public String[] desktopDependencies = new String[0];
+    public String[] htmlDependencies = new String[0];
+    public String[] repositories = new String[0];
+
     public SerializableProject(Project project) {
 
         path = project.path;
         projectName = project.projectName;
-        rootGameObject = new SerializableGameObject(project.rootGameObject);
+        for (String key : project.scenes.keySet()) {
+            scenes.put(key, new SerializableScene(project.scenes.get(key)));
+        }
+        mainScene = project.mainScene;
 
         windowTitle = project.windowTitle;
         buildName = project.buildName;
@@ -67,14 +79,24 @@ public class SerializableProject
         physicsVelocityIterations = project.physicsVelocityIterations;
         physicsPositionIterations = project.physicsPositionIterations;
 
+        dependencies = new String[project.dependencies.size()]; // CORE
+        for (int i = 0; i < dependencies.length; i++) dependencies[i] = project.dependencies.get(i);
+        desktopDependencies = new String[project.desktopDependencies.size()]; // DESKTOP
+        for (int i = 0; i < desktopDependencies.length; i++) desktopDependencies[i] = project.desktopDependencies.get(i);
+        htmlDependencies = new String[project.htmlDependencies.size()]; // HTML
+        for (int i = 0; i < htmlDependencies.length; i++) htmlDependencies[i] = project.htmlDependencies.get(i);
+        repositories = new String[project.repositories.size()];
+        for (int i = 0; i < repositories.length; i++) repositories[i] = project.repositories.get(i);
+
     }
 
     public SerializableProject() {
     }
 
-    public Project createProject() {
+    public Project createProject(FileHandle folder) {
+        currentProjectPath = folder;
         Project project = new Project();
-        project.path = path;
+        project.path = folder;
         project.projectName = projectName;
 
         project.windowTitle = windowTitle;
@@ -117,16 +139,26 @@ public class SerializableProject
             }
         }
 
-        project.rootGameObject = rootGameObject.createGameObject(null);
+        project.mainScene = mainScene;
+        project.currentScene = project.mainScene;
+
+        project.dependencies.addAll(List.of(dependencies));
+        project.desktopDependencies.addAll(List.of(desktopDependencies));
+        project.htmlDependencies.addAll(List.of(htmlDependencies));
+        project.repositories.clear();
+        project.repositories.add("https://repo.maven.apache.org/maven2/");
+        project.repositories.addAll(List.of(repositories));
+
         return project;
     }
 
     @Override
     public void write(Json json) {
+
         json.writeValue("path", path.path());
         json.writeValue("projectName", projectName);
 
-        json.writeValue("rootGameObject", rootGameObject);
+        json.writeValue("mainScene", mainScene);
 
         json.writeValue("windowTitle", windowTitle);
         json.writeValue("buildName", buildName);
@@ -148,6 +180,20 @@ public class SerializableProject
         json.writeValue("physicsVelocityIterations", physicsVelocityIterations);
         json.writeValue("physicsPositionIterations", physicsPositionIterations);
 
+        json.writeValue("dependencies", dependencies);
+        json.writeValue("desktopDependencies", desktopDependencies);
+        json.writeValue("htmlDependencies", htmlDependencies);
+        json.writeValue("repositories", repositories);
+
+    }
+
+    public String toJson() {
+        for (String key : scenes.keySet()) {
+            String jsonCode = json.toJson(scenes.get(key));
+            path.child(key).writeString(jsonCode, false);
+        }
+
+        return json.toJson(this);
     }
 
     @Override
@@ -155,7 +201,7 @@ public class SerializableProject
         if (Gdx.files != null && Gdx.app.getType() != Application.ApplicationType.WebGL) path = Gdx.files.absolute(json.readValue("path", String.class, jsonData));
         projectName = json.readValue("projectName", String.class, jsonData);
 
-        rootGameObject = json.readValue("rootGameObject", SerializableGameObject.class, jsonData);
+        mainScene = json.readValue("mainScene", String.class, jsonData);
 
         windowTitle = json.readValue("windowTitle", String.class, jsonData);
         buildName = json.readValue("buildName", String.class, jsonData);
@@ -176,6 +222,12 @@ public class SerializableProject
         physicsGravity = json.readValue("physicsGravity", Vector2.class, jsonData);
         physicsVelocityIterations = json.readValue("physicsVelocityIterations", int.class, jsonData);
         physicsPositionIterations = json.readValue("physicsPositionIterations", int.class, jsonData);
+
+        dependencies = json.readValue("dependencies", String[].class, jsonData);
+        desktopDependencies = json.readValue("desktopDependencies", String[].class, jsonData);
+        htmlDependencies = json.readValue("htmlDependencies", String[].class, jsonData);
+        repositories = json.readValue("repositories", String[].class, jsonData);
+
     }
 }
 

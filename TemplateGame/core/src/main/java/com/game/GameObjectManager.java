@@ -23,11 +23,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 
 import static com.game.Statics.json;
+import static com.game.Statics.allGameObjects;
 
 
 public class GameObjectManager {
 
-    GameObject main;
+    HashMap<String, GameObject> scenesGameObject = new HashMap<>();
 
     public static Engine engine;
 
@@ -201,10 +202,9 @@ public class GameObjectManager {
         return false;
     }
 
-    Array<GameObject> allGameObjects = new Array<>();
-
     public void listAll(GameObject parent) {
-        allGameObjects.add(parent);
+        Array<GameObject> gameObjects = allGameObjects.getOrDefault(Statics.currentProject.currentScene, new Array<>());
+        gameObjects.add(parent);
         for (GameObject g : parent.children) {
             listAll(g);
         }
@@ -226,19 +226,31 @@ public class GameObjectManager {
         Statics.engine = engine;
 
         SerializableProject proj = json.fromJson(SerializableProject.class, Gdx.files.internal("main.json").readString());
-        Statics.currentProject = proj.createProject();
+        Statics.currentProject = proj.createProject(Gdx.files.internal(""));
 
-        main = createGameObject(proj.rootGameObject);
-
-        search(main);
-
-        listAll(main);
-
-        fix(allGameObjects);
+        GameObject main = getMain();
 
     }
 
+    GameObject getMain() {
+        if (!scenesGameObject.containsKey(Statics.currentProject.currentScene)) {
+            scenesGameObject.put(Statics.currentProject.currentScene, createGameObject(json.fromJson(SerializableScene.class, Statics.currentProject.path.child("Assets/" + Statics.currentProject.currentScene)).rootGameObject));
+
+            GameObject main = scenesGameObject.get(Statics.currentProject.currentScene);
+
+            search(main);
+
+            listAll(main);
+
+            fix(allGameObjects.get(Statics.currentProject.currentScene));
+        }
+        return scenesGameObject.get(Statics.currentProject.currentScene);
+    }
+
     public void start() {
+
+        GameObject main = getMain();
+
         engine.start(main, false);
         Gdx.graphics.setTitle(Statics.currentProject.windowTitle);
         if (Statics.currentProject.fullscreen) {
@@ -249,6 +261,9 @@ public class GameObjectManager {
     }
 
     public void update() {
+
+        GameObject main = getMain();
+
         if (cameraHolder != null) {
             ScreenUtils.clear(cameraHolder.camera.backgroundColor.r, cameraHolder.camera.backgroundColor.g, cameraHolder.camera.backgroundColor.b, cameraHolder.camera.backgroundColor.a);
             cameraHolder.camera.apply(batch, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
