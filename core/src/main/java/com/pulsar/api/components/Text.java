@@ -1,17 +1,13 @@
 package com.pulsar.api.components;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.CpuSpriteBatch;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.pulsar.api.Component;
 import com.pulsar.api.FileHandle;
-import com.pulsar.api.Renderer;
 import com.pulsar.api.graphics.Color;
-import com.pulsar.api.graphics.Material;
-import com.pulsar.api.graphics.Texture;
-import com.pulsar.api.graphics.TextureAsset;
+import com.pulsar.api.math.Vector2;
 
 public class Text extends Component {
 
@@ -89,4 +85,18 @@ public class Text extends Component {
             font.draw(batch, text, transform.position.x, transform.position.y);
         }
     }
+
+    public float getTextWidth(String text) {
+        return new GlyphLayout(font, text).width;
+    }
+
+    public float getTextHeight(String text) {
+        return new GlyphLayout(font, text).height;
+    }
+
+    public Vector2 getTextSize(String text) {
+        GlyphLayout layout = new GlyphLayout(font, text);
+        return new Vector2(layout.width, layout.height);
+    }
+
 }
