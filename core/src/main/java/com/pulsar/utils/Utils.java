@@ -376,6 +376,8 @@ public class Utils {
         currentProject.components.add(WheelJoint.class);
         currentProject.components.add(WeldJoint.class);
         currentProject.components.add(ParticleEmitter.class);
+
+        currentProject.components.add(Text.class);
     }
 
     public static void loadProject(Project project) {

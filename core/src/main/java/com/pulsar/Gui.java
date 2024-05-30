@@ -849,6 +849,11 @@ public class Gui {
         public Material material;
     }
 
+    @AllArgsConstructor
+    static class FileHandlePayload {
+        public com.pulsar.api.FileHandle fileHandle;
+    }
+
     private float toolbarHeight;
 
     private void toolbar() {
@@ -948,6 +953,9 @@ public class Gui {
 
         ImGui.end();
     }
+
+    private int fileHandleType = 0;
+    private String fileHandlePath = "";
 
     private Object edit(Type type, String name, Object value) {
         ImGui.setNextItemWidth(250);
@@ -1088,6 +1096,7 @@ public class Gui {
             return mat;
         } else if (type.equals(Color.class)) {
             Color color = (Color) value;
+            if (color == null) color = new Color();
             tempColor[0] = color.r;
             tempColor[1] = color.g;
             tempColor[2] = color.b;
@@ -1329,6 +1338,48 @@ public class Gui {
             }
             if (newComponent != value) Utils.captureState();
             return newComponent;
+        } else if (type.equals(com.pulsar.api.FileHandle.class)) {
+            com.pulsar.api.FileHandle newFileHandle = (com.pulsar.api.FileHandle) value;
+            boolean isNull = newFileHandle.path() == null;
+            if (ImGui.beginPopup("FileHandleSelector")) {
+                if (ImGui.radioButton("Internal", fileHandleType == 0)) fileHandleType = 0;
+                ImGui.sameLine();
+                if (ImGui.radioButton("Absolute", fileHandleType == 1)) fileHandleType = 1;
+                ImGui.sameLine();
+                if (ImGui.radioButton("External", fileHandleType == 2)) fileHandleType = 2;
+                ImGui.sameLine();
+                if (ImGui.radioButton("Local", fileHandleType == 3)) fileHandleType = 3;
+                imString.set(fileHandlePath);
+                ImGui.inputText("##FileHandlePopupPath" + name, imString);
+                fileHandlePath = imString.get();
+                if (ImGui.button("Apply")) {
+                    if (fileHandleType == 0) newFileHandle.setInternal(fileHandlePath);
+                    if (fileHandleType == 1) newFileHandle.setAbsolute(fileHandlePath);
+                    if (fileHandleType == 2) newFileHandle.setExternal(fileHandlePath);
+                    if (fileHandleType == 3) newFileHandle.setLocal(fileHandlePath);
+                }
+                ImGui.endPopup();
+            }
+            if (ImGui.button((isNull ? "" : "(" + newFileHandle.fileType() + ") ") + (isNull ? "None" : newFileHandle.path()) + "##Sel" + name)) {
+                fileHandleType = 0;
+                fileHandlePath = "";
+                if (!isNull) {
+                    fileHandlePath = newFileHandle.path();
+                    if (newFileHandle.fileType().equals("Internal")) fileHandleType = 0;
+                    if (newFileHandle.fileType().equals("Absolute")) fileHandleType = 1;
+                    if (newFileHandle.fileType().equals("External")) fileHandleType = 2;
+                    if (newFileHandle.fileType().equals("Local")) fileHandleType = 3;
+                }
+                ImGui.openPopup("FileHandleSelector");
+            }
+            if (ImGui.beginDragDropTarget()) {
+                FileHandlePayload payload = ImGui.acceptDragDropPayload("FileHandle", FileHandlePayload.class);
+                if (payload != null)
+                    newFileHandle = payload.fileHandle;
+                ImGui.endDragDropTarget();
+            }
+            if (newFileHandle != value) Utils.captureState();
+            return newFileHandle;
         } else if (type.equals(Collider.PhysicsFilter.class)) {
             Collider.PhysicsFilter filter = (Collider.PhysicsFilter) value;
             tempInteger.set(filter.categoryBits);
@@ -1394,6 +1445,7 @@ public class Gui {
         Camera.class,
         SpriteRenderer.class,
         ParticleEmitter.class,
+        Text.class,
     };
 
     Class<?>[] componentsPhysicsSection = new Class<?>[] {
@@ -1451,6 +1503,7 @@ public class Gui {
                     ImGui.indent();
                     for (int j = 0; j < component.fields.size; j++) {
                         com.badlogic.gdx.utils.reflect.Field field = component.fields.get(j);
+                        if (field.isStatic()) continue;
 
                         if (field.isAnnotationPresent(TreeStart.class)) {
                             TreeStart treeStart = field.getDeclaredAnnotation(TreeStart.class).getAnnotation(TreeStart.class);

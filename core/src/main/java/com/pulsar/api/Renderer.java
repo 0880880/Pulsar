@@ -2,6 +2,7 @@ package com.pulsar.api;
 
 import com.badlogic.gdx.graphics.g2d.CpuSpriteBatch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.pulsar.api.components.Text;
 import com.pulsar.api.graphics.Material;
 import com.pulsar.api.graphics.Shader;
 import com.pulsar.api.graphics.Texture;
@@ -32,6 +33,7 @@ public class Renderer {
     static void update() {
         if (cameraHolder.camera != null)
             Input.update(cameraHolder.camera);
+        Text.batch = batch;
         lastShader = null;
     }
 
