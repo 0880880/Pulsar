@@ -67,6 +67,7 @@ public class Text extends Component {
         parameter.shadowOffsetY = shadowOffsetY;
 
         font = generator.generateFont(parameter);
+        font.setUseIntegerPositions(false);
         oldFontFile = fontFile.path();
     }
 
@@ -80,7 +81,7 @@ public class Text extends Component {
     public void update() {
         if (!oldFontFile.equals(fontFile.path())) updateFont();
         if (batch != null && !oldFontFile.isBlank()) {
-            font.getData().setScale(.01f);
+            font.getData().setScale(1/(float)fontSize);
             font.getData().scaleX *= scaleX;
             font.getData().scaleY *= scaleY;
 
