@@ -1,5 +1,6 @@
 package com.pulsar.api;
 
+import com.pulsar.api.components.Text;
 import com.pulsar.api.graphics.Material;
 import com.pulsar.api.graphics.Shader;
 import com.pulsar.api.graphics.Texture;

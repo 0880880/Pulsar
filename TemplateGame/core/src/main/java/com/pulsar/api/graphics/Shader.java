@@ -1,6 +1,4 @@
 package com.pulsar.api.graphics;
-
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
@@ -22,7 +20,7 @@ public class Shader
 
     public Shader() { }
 
-    public Shader(FileHandle shaderFile, String shaderSource) {
+    public Shader(com.badlogic.gdx.files.FileHandle shaderFile, String shaderSource) {
 
         this.shaderFile = shaderFile.path();
         this.shaderSource = shaderSource;
@@ -33,7 +31,7 @@ public class Shader
 
     }
 
-    public void update(FileHandle shaderFile, String shaderSource) {
+    public void update(com.badlogic.gdx.files.FileHandle shaderFile, String shaderSource) {
 
         if (shaderProgram != null) this.shaderProgram.dispose();
 

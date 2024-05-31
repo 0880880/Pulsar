@@ -1,5 +1,4 @@
 package com.pulsar.api.graphics;
-
 import com.pulsar.api.ShaderLanguage;
 
 public class Shader

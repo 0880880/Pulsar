@@ -1,6 +1,5 @@
 package com.pulsar.api.audio;
 
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
 import com.pulsar.api.AudioManager;
@@ -13,7 +12,7 @@ public class AudioClip
 {
 
     public String soundFile;
-    private transient FileHandle file;
+    private transient com.badlogic.gdx.files.FileHandle file;
 
     private transient com.game.audio.SoundBuffer buffer;
 
