@@ -23,7 +23,7 @@ keywords = [
 "SongSource", "SoundListener", "BufferedSoundSource","Statics","regexodus", "gdx", "lwjgl", "lombok", "earlygrey", "Sprite", "ShapeDrawer", "random", "Viewport",
 "@Getter", "@AllArgsConstructor", "Array", "FileHandle", "SoundBuffer", ".Utils", "tuningfork"
 "FileHandle", "AudioManager", "World", "Body", "Fixture", "Joint", "ShaderProgram", "JsonIgnore",
-"ShaderProgram", "Json", "StreamedSoundSource"
+"ShaderProgram", "Json", "StreamedSoundSource", "BitmapFont"
 ]
 exclude_keywords = [
 "RigidBody", "AudioManager", "DistanceJoint", "RevoluteJoint", "PrismaticJoint", "RopeJoint", "WheelJoint", "WeldJoint", "SpriteMode", "SpriteRenderer"
@@ -46,7 +46,7 @@ def api_preprocess0(root_folder):
 
     for file_path in root_path.rglob('*'):
         if file_path.is_file() and not os.path.basename(file_path) in exclude_files:
-            source = open(file_path, mode="r").read()
+            source = open(file_path, mode="r", encoding="utf-8").read()
 
             res = ""
 
@@ -176,7 +176,7 @@ def api_preprocess0(root_folder):
             if not new_path.exists():
                 new_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(new_path, mode="w+") as f:
+            with open(new_path, mode="w+", encoding="utf-8") as f:
                 f.write(res)
 
 
@@ -188,7 +188,7 @@ def api_preprocess1(root_folder):
 
     for file_path in root_path.rglob('*'):
         if file_path.is_file() and not os.path.basename(file_path) in exclude_files:
-            source = open(file_path, mode="r").read()
+            source = open(file_path, mode="r", encoding="utf-8").read()
 
             res = ""
 
@@ -216,7 +216,7 @@ def api_preprocess1(root_folder):
             if not out.exists():
                 out.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(out, mode="w+") as f:
+            with open(out, mode="w+", encoding="utf-8") as f:
                 f.write(res)
 
 
