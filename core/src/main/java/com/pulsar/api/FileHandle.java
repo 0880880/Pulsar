@@ -2,18 +2,23 @@ package com.pulsar.api;
 
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.utils.Json;
+import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.reflect.ArrayReflection;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
 import com.pulsar.Statics;
 
-public class FileHandle {
+public class FileHandle
+    implements Json.Serializable
+{
 
     public com.badlogic.gdx.files.FileHandle gdxFile; // TODO Change public to private
 
+    private String path;
     private String type;
     private String[] types;
 
-    private com.badlogic.gdx.Files.FileType fileType = null;
+    private String fileType = null;
 
     public FileHandle(String type) {
         setType(type);
@@ -31,40 +36,40 @@ public class FileHandle {
 
     public void writeString(String string, boolean append) {
         if (gdxFile == null) return;
-        if (fileType != Files.FileType.Internal) return;
+        if (fileType.equals("Internal")) return;
         gdxFile.writeString(string, append);
     }
 
     public void writeBytes(byte[] bytes, boolean append) {
         if (gdxFile == null) return;
-        if (fileType != Files.FileType.Internal) return;
+        if (fileType.equals("Internal")) return;
         gdxFile.writeBytes(bytes, append);
     }
 
     public FileHandle setAbsolute(String path) {
-        if (gdxFile == null) return this;
-        fileType = Files.FileType.Absolute;
+        fileType = "Absolute";
+        this.path = path;
         gdxFile = Gdx.files.absolute(path);
         return this;
     }
 
     public FileHandle setInternal(String path) {
-        if (gdxFile == null) return this;
-        fileType = Files.FileType.Internal;
-        gdxFile = Statics.currentProjectPath.child(path);
+        fileType = "Internal";
+        this.path = path;
+        gdxFile = Statics.currentProjectPath.child("Assets").child(path);
         return this;
     }
 
     public FileHandle setExternal(String path) {
-        if (gdxFile == null) return this;
-        fileType = Files.FileType.External;
+        fileType = "External";
+        this.path = path;
         gdxFile = Gdx.files.external(path);
         return this;
     }
 
     public FileHandle setLocal(String path) {
-        if (gdxFile == null) return this;
-        fileType = Files.FileType.Local;
+        fileType = "Local";
+        this.path = path;
         gdxFile = Gdx.files.local(path);
         return this;
     }
@@ -72,17 +77,19 @@ public class FileHandle {
     public FileHandle child(String path) {
         if (gdxFile == null) return this;
         gdxFile = gdxFile.child(path);
+        this.path = gdxFile.path();
         return this;
     }
 
     public FileHandle parent() {
         if (gdxFile == null) return this;
         gdxFile = gdxFile.parent();
+        this.path = gdxFile.path();
         return this;
     }
 
     public String path() {
-        if (gdxFile == null) return "";
+        if (gdxFile == null) return null;
         return gdxFile.path();
     }
 
@@ -203,10 +210,6 @@ public class FileHandle {
 
     public String fileType() {
         if (gdxFile == null) return null;
-        String fileType = "Absolute";
-        if (gdxFile.type() == Files.FileType.Internal) fileType = "Internal";
-        if (gdxFile.type() == Files.FileType.External) fileType = "External";
-        if (gdxFile.type() == Files.FileType.Local) fileType = "Local";
         return fileType;
     }
 
@@ -219,4 +222,38 @@ public class FileHandle {
         return types;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public void write(Json json) {
+        json.writeValue("path", path);
+        json.writeValue("type", type);
+        json.writeValue("fileType", fileType);
+    }
+
+    @Override
+    public void read(Json json, JsonValue jsonData) {
+        path = jsonData.getString("path");
+        type = jsonData.getString("type");
+        types = type.split(",");
+        fileType = jsonData.getString("fileType");
+        if (path != null) {
+            switch (fileType) {
+                case "Internal":
+                    gdxFile = Gdx.files.internal(path);
+                    break;
+                case "External":
+                    gdxFile = Gdx.files.external(path);
+                    break;
+                case "Local":
+                    gdxFile = Gdx.files.local(path);
+                    break;
+                default:
+                    gdxFile = Gdx.files.absolute(path);
+                    break;
+            }
+        }
+    }
 }
