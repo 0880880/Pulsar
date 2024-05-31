@@ -72,7 +72,7 @@ public class Utils {
     }
 
     static Process compileJavaFile(String filePath, String dir, String dependencies) throws IOException {
-        String[] command = {"javac", "-cp", "\"" + dependencies + "\"", "-d", ".", filePath};
+        String[] command = {"javac", "-encoding", "utf8", "-cp", "\"" + dependencies + "\"", "-d", ".", filePath};
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(new File(dir));
@@ -80,18 +80,9 @@ public class Utils {
     }
 
     static Process compileJavaFiles(String[] filePaths, String dir) throws IOException {
-        String[] command = {"javac"};
+        String[] command = {"javac", "-encoding", "utf8"};
         command = ArrayUtils.addAll(command, filePaths);
-		/*StringBuilder builder = new StringBuilder();
-		for (String s : command)
-			builder.append(s).append(" ");*/
         ProcessBuilder pb = new ProcessBuilder(command);
-		/*StringBuilder cmd = new StringBuilder();
-		for (String s : pb.command()) {
-			cmd.append(s);
-			cmd.append(" ");
-		}*/
-
 
         pb.directory(new File(dir));
         return pb.start();
@@ -149,7 +140,7 @@ public class Utils {
             if (!tempDir.child("annotations").exists())
                 tempDir.child("annotations").mkdirs();
 
-            String[] compileApiOrder = new String[]{"Engine.java", "Debug.java", "Renderer.java", "Input.java", "ShaderLanguage.java", "GameObject.java", "Time.java", "Component.java", "GameObjectCondition.java", "AudioManager.java", "Label.java", "Curve.java", "Button.java", "ColorRange.java", "Graphics.java", "CameraHolder.java", "Scene.java"};
+            String[] compileApiOrder = new String[]{"Engine.java", "Debug.java", "FileHandle.java", "Renderer.java", "Input.java", "ShaderLanguage.java", "GameObject.java", "Time.java", "Component.java", "GameObjectCondition.java", "AudioManager.java", "Label.java", "Curve.java", "Button.java", "ColorRange.java", "Graphics.java", "CameraHolder.java", "Scene.java"};
             String[] foldersToCopy = new String[]{"components", "math", "graphics", "audio", "physics", "annotations"};
 
             for (String s : compileApiOrder) {
