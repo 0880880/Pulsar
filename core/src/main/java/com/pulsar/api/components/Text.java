@@ -41,7 +41,7 @@ public class Text extends Component {
     private Transform transform;
 
     public void updateFont() {
-        if (fontFile.path() != null) {
+        if (fontFile.path() != null && fontFile.exists()) {
             FreeTypeFontGenerator generator = new FreeTypeFontGenerator(fontFile.gdxFile, faceIndex);
             FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
             parameter.size = fontSize;
