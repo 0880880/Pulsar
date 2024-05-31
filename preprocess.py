@@ -21,7 +21,7 @@ def remove_lines_with_substrings(input_string, substrings_to_remove, exclude_sub
 important_keywords = ["gdx", "lwjgl", "lombok", "earlygrey", "transient", "regexodus"]
 keywords = [
 "SongSource", "SoundListener", "BufferedSoundSource","Statics","regexodus", "gdx", "lwjgl", "lombok", "earlygrey", "Sprite", "ShapeDrawer", "random", "Viewport",
-"@Getter", "@AllArgsConstructor", "Array", "FileHandle", "SoundBuffer", ".Utils", "tuningfork"
+"@Getter", "@AllArgsConstructor", "Array", "SoundBuffer", ".Utils", "tuningfork"
 "FileHandle", "AudioManager", "World", "Body", "Fixture", "Joint", "ShaderProgram", "JsonIgnore",
 "ShaderProgram", "Json", "StreamedSoundSource", "BitmapFont"
 ]
