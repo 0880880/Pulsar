@@ -42,29 +42,31 @@ public class Text extends Component {
     private Transform transform;
 
     public void updateFont() {
-        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(fontFile.gdxFile, faceIndex);
-        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        parameter.size = fontSize;
-        parameter.color = com.badlogic.gdx.graphics.Color.WHITE;
-        parameter.characters = characters;
+        if (fontFile.path() != null) {
+            FreeTypeFontGenerator generator = new FreeTypeFontGenerator(fontFile.gdxFile, faceIndex);
+            FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameter.size = fontSize;
+            parameter.color = com.badlogic.gdx.graphics.Color.WHITE;
+            parameter.characters = characters;
 
-        parameter.flip = flip;
-        parameter.incremental = incremental;
-        parameter.kerning = kerning;
-        parameter.mono = mono;
+            parameter.flip = flip;
+            parameter.incremental = incremental;
+            parameter.kerning = kerning;
+            parameter.mono = mono;
 
-        parameter.borderColor.set(borderColor.r, borderColor.g, borderColor.b, borderColor.a);
-        parameter.borderWidth = borderWidth;
-        parameter.borderGamma = borderGamma;
-        parameter.borderStraight = borderStraight;
+            parameter.borderColor.set(borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+            parameter.borderWidth = borderWidth;
+            parameter.borderGamma = borderGamma;
+            parameter.borderStraight = borderStraight;
 
-        parameter.shadowColor.set(shadowColor.r, shadowColor.g, shadowColor.b, shadowColor.a);
-        parameter.shadowOffsetX = shadowOffsetX;
-        parameter.shadowOffsetY = shadowOffsetY;
+            parameter.shadowColor.set(shadowColor.r, shadowColor.g, shadowColor.b, shadowColor.a);
+            parameter.shadowOffsetX = shadowOffsetX;
+            parameter.shadowOffsetY = shadowOffsetY;
 
-        font = generator.generateFont(parameter);
-        font.setUseIntegerPositions(false);
-        oldFontFile = fontFile.path();
+            font = generator.generateFont(parameter);
+            font.setUseIntegerPositions(false);
+            oldFontFile = fontFile.path();
+        }
     }
 
     @Override
@@ -76,7 +78,7 @@ public class Text extends Component {
     @Override
     public void update() {
         if (!oldFontFile.equals(fontFile.path())) updateFont();
-        if (batch != null && !oldFontFile.isBlank()) {
+        if (batch != null && font != null) {
             font.getData().setScale(1/(float)fontSize);
             font.getData().scaleX *= scaleX;
             font.getData().scaleY *= scaleY;
