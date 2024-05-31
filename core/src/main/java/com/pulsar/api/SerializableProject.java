@@ -189,7 +189,7 @@ public class SerializableProject
     public String toJson() {
         for (String key : scenes.keySet()) {
             String jsonCode = json.toJson(scenes.get(key));
-            path.child(key).writeString(jsonCode, false);
+            path.child("Assets").child(key).writeString(jsonCode, false);
         }
 
         return json.toJson(this);
