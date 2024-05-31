@@ -2,7 +2,6 @@ package com.pulsar.api;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
@@ -19,7 +18,7 @@ public class SerializableProject
     implements Json.Serializable
 {
 
-    public FileHandle path;
+    public com.badlogic.gdx.files.FileHandle path;
     public String projectName;
 
     public HashMap<String, SerializableScene> scenes = new HashMap<>();
@@ -93,7 +92,7 @@ public class SerializableProject
     public SerializableProject() {
     }
 
-    public Project createProject(FileHandle folder) {
+    public Project createProject(com.badlogic.gdx.files.FileHandle folder) {
         currentProjectPath = folder;
         Project project = new Project();
         project.path = folder;
@@ -123,8 +122,8 @@ public class SerializableProject
         Utils.compile();
 
         if (Gdx.app.getType() == Application.ApplicationType.Desktop) {
-            FileHandle[] assets = currentProject.path.child("assets").list();
-            for (FileHandle file : assets) {
+            com.badlogic.gdx.files.FileHandle[] assets = currentProject.path.child("assets").list();
+            for (com.badlogic.gdx.files.FileHandle file : assets) {
                 if (file.extension().equalsIgnoreCase("java")) {
                     if (!file.readString().isEmpty()) {
                         if (!currentProject.path.child("Temp").child(file.nameWithoutExtension() + ".jar").exists())

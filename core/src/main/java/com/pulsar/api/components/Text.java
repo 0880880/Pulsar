@@ -1,6 +1,5 @@
 package com.pulsar.api.components;
 
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
@@ -11,7 +10,7 @@ import com.pulsar.api.math.Vector2;
 
 public class Text extends Component {
 
-    public static Batch batch;
+    public static com.badlogic.gdx.graphics.g2d.Batch batch;
 
     public FileHandle fontFile = new FileHandle("ttf");
 

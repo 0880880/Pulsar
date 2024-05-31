@@ -1,7 +1,6 @@
 package com.pulsar.api;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.pulsar.api.math.Vector2;
 
@@ -13,7 +12,7 @@ import static com.pulsar.Statics.*;
 
 public class Project {
 
-    public FileHandle path;
+    public com.badlogic.gdx.files.FileHandle path;
     public String projectName;
 
     public ArrayList<Class<? extends Component>> components = new ArrayList<>();
@@ -55,7 +54,7 @@ public class Project {
         File pFolder = new File(path);
 
         if (pFolder.isDirectory()) {
-            FileHandle projectSave = Gdx.files.absolute(pFolder.getAbsolutePath() + "\\main.prj");
+            com.badlogic.gdx.files.FileHandle projectSave = Gdx.files.absolute(pFolder.getAbsolutePath() + "\\main.prj");
             currentProjectPath = projectSave.parent();
             if (projectSave.exists()) {
                 Project proj = json.fromJson(SerializableProject.class, projectSave.readString()).createProject(projectSave.parent());

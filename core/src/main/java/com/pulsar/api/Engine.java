@@ -1,7 +1,6 @@
 package com.pulsar.api;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.CpuSpriteBatch;
@@ -36,12 +35,12 @@ public class Engine {
     public HashMap<String, Shader> loadedShaders = new HashMap<>();
     public HashMap<String, Material> loadedMaterials = new HashMap<>();
 
-    public TextureAsset loadTexture(String name, FileHandle path) {
+    public TextureAsset loadTexture(String name, com.badlogic.gdx.files.FileHandle path) {
         if (!loadedTextures.containsKey(name)) loadedTextures.put(name, new TextureAsset(path.path(), path.name(), new com.badlogic.gdx.graphics.Texture(path)));
         return loadedTextures.get(name);
     }
 
-    public Shader loadShader(String name, FileHandle path) {
+    public Shader loadShader(String name, com.badlogic.gdx.files.FileHandle path) {
         if (!loadedShaders.containsKey(name)) loadedShaders.put(name, new Shader(path, path.readString()));
         return loadedShaders.get(name);
     }
@@ -51,12 +50,12 @@ public class Engine {
         return loadedShaders.get(name);
     }
 
-    public Material loadMaterial(String name, FileHandle path) {
+    public Material loadMaterial(String name, com.badlogic.gdx.files.FileHandle path) {
         if (!loadedMaterials.containsKey(name)) loadedMaterials.put(name, new Material(path, path.readString()));
         return loadedMaterials.get(name);
     }
 
-    public AudioClip loadAudio(String name, FileHandle path) {
+    public AudioClip loadAudio(String name, com.badlogic.gdx.files.FileHandle path) {
         if (!loadedAudioClips.containsKey(name)) {
             AudioClip clip = new AudioClip();
             clip.soundFile = path.path();
