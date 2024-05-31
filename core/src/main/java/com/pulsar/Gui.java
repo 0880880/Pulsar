@@ -1352,11 +1352,17 @@ public class Gui {
                 imString.set(fileHandlePath);
                 ImGui.inputText("##FileHandlePopupPath" + name, imString);
                 fileHandlePath = imString.get();
+                ImGui.sameLine();
+                if (ImGui.smallButton("...##FileHandlePopupPathDialogBtn")) {
+                    fileHandlePath = openDialog(newFileHandle.getType());
+                    fileHandleType = 1;
+                }
                 if (ImGui.button("Apply")) {
                     if (fileHandleType == 0) newFileHandle.setInternal(fileHandlePath);
                     if (fileHandleType == 1) newFileHandle.setAbsolute(fileHandlePath);
                     if (fileHandleType == 2) newFileHandle.setExternal(fileHandlePath);
                     if (fileHandleType == 3) newFileHandle.setLocal(fileHandlePath);
+                    ImGui.closeCurrentPopup();
                 }
                 ImGui.endPopup();
             }
